@@ -47,7 +47,7 @@ RUN pip3 install --no-cache-dir \
 
 # Install main dependencies
 COPY remote-gpu/server/requirements.txt /workspace/requirements.txt
-COPY requirements_venv.txt /workspace/requirements_base.txt
+COPY remote-gpu/requirements_docker.txt /workspace/requirements_base.txt
 
 RUN pip3 install --no-cache-dir -r /workspace/requirements.txt && \
     pip3 install --no-cache-dir -r /workspace/requirements_base.txt

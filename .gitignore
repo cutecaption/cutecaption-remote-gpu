@@ -20,3 +20,7 @@ python/*
 
 # Allow this ignore file
 !.gitignore
+
+# Explicitly ignore pycache anywhere
+**/__pycache__/
+*.pyc
