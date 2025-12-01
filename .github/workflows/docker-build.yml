@@ -2,7 +2,7 @@ name: Build and Push Remote GPU Server
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
@@ -11,19 +11,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Debug - Show files
-        run: |
-          echo "=== Root directory ==="
-          ls -la
-          echo "=== remote-gpu directory ==="
-          ls -la remote-gpu/
-          echo "=== Dockerfile content ==="
-          cat remote-gpu/Dockerfile
-          echo "=== requirements_docker.txt content ==="
-          cat remote-gpu/requirements_docker.txt
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
