@@ -1,19 +1,17 @@
-# CuteCaption Virtual Environment Requirements
-# Install with: pip install -r requirements_venv.txt
-
-# Core PyTorch with CUDA support (handled separately in Docker)
-# --index-url https://download.pytorch.org/whl/cu118
-# torch>=2.4.1
-# torchvision>=0.22.0
-# torchaudio>=2.7.0
+# CuteCaption Remote GPU Server - Docker Requirements
+# These are specifically for Linux/RunPod builds
 
 # Core ML/AI libraries
-transformers
+# CRITICAL: Must use git version for Qwen3VLForConditionalGeneration support
+git+https://github.com/huggingface/transformers
 accelerate
 bitsandbytes
 safetensors
 faiss-cpu
 git+https://github.com/openai/CLIP.git
+
+# Qwen VL utilities (required for process_vision_info)
+qwen-vl-utils
 
 # Model-specific dependencies
 sentencepiece
@@ -31,7 +29,3 @@ huggingface-hub
 
 # System utilities
 psutil
-
-# Note: Mock Triton module is created manually in venv/Lib/site-packages/triton/
-# This provides Windows compatibility for CogVLM2 models that require Triton imports
-
