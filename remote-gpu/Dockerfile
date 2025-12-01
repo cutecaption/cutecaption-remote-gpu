@@ -39,10 +39,11 @@ COPY remote-gpu/dashboard /workspace/dashboard
 
 # Install Python dependencies
 # First, install PyTorch with CUDA support
+# Using newer version compatible with python 3.10 and recent transformers
 RUN pip3 install --no-cache-dir \
-    torch==2.1.0 \
-    torchvision==0.16.0 \
-    torchaudio==2.1.0 \
+    torch==2.4.0 \
+    torchvision==0.19.0 \
+    torchaudio==2.4.0 \
     --index-url https://download.pytorch.org/whl/cu121
 
 # Install main dependencies
