@@ -1,0 +1,22 @@
+# Ignore everything by default
+*
+
+# Allow remote-gpu folder and its contents
+!remote-gpu/
+!remote-gpu/**
+
+# Allow python/intelligence folder (required for build)
+!python/
+python/*
+!python/intelligence/
+!python/intelligence/**
+
+# Allow requirements file (required for build)
+!requirements_venv.txt
+
+# Allow GitHub Actions workflows
+!.github/
+!.github/**
+
+# Allow this ignore file
+!.gitignore

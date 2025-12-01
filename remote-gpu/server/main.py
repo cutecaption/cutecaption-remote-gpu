@@ -1,0 +1,566 @@
+"""
+CuteCaption Remote GPU Server
+FastAPI service for offloading GPU-intensive inference to RunPod
+
+ARCHITECTURE:
+- FastAPI for HTTP/WebSocket endpoints
+- Persistent model loading (load once, keep in VRAM)
+- Request batching for efficiency
+- WebSocket for real-time progress updates
+- Graceful shutdown with model cleanup
+
+ENDPOINTS:
+- GET /status - GPU info, loaded models, memory usage
+- POST /api/v1/vlm/classify - VLM image classification
+- POST /api/v1/vlm/caption - VLM image captioning
+- POST /api/v1/vlm/verify - VLM candidate verification
+- POST /api/v1/vlm/synthesize - VLM answer synthesis
+- POST /api/v1/semantic/search - CLIP semantic search
+- POST /api/v1/semantic/embed - CLIP embedding generation
+- POST /api/v1/pose/detect - MediaPipe pose detection
+- WS /ws - WebSocket for live progress updates
+"""
+
+import os
+import sys
+import asyncio
+import logging
+from pathlib import Path
+from typing import Dict, Any, Optional, List
+import time
+import psutil
+import GPUtil
+
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Depends, Header
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse, HTMLResponse
+from pydantic import BaseModel, Field
+import uvicorn
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# ============================================================================
+# CONFIGURATION
+# ============================================================================
+
+API_KEY = os.getenv('CUTECAPTION_API_KEY', 'dev-key-change-in-production')
+HOST = os.getenv('CUTECAPTION_HOST', '0.0.0.0')
+PORT = int(os.getenv('CUTECAPTION_PORT', '8080'))
+MODEL_CACHE = os.getenv('CUTECAPTION_MODEL_CACHE', '/workspace/models')
+
+# ============================================================================
+# FASTAPI APP
+# ============================================================================
+
+app = FastAPI(
+    title="CuteCaption Remote GPU Server",
+    description="High-performance GPU inference service for CuteCaption",
+    version="1.0.0"
+)
+
+# CORS - allow CuteCaption Electron app to connect
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, lock this down to specific origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ============================================================================
+# SERVICE REGISTRY (Lazy loading)
+# ============================================================================
+
+class ServiceRegistry:
+    """Manages inference services (VLM, Semantic, Pose)"""
+    
+    def __init__(self):
+        self.vlm_service = None
+        self.semantic_service = None
+        self.pose_service = None
+        self.services_initialized = {
+            'vlm': False,
+            'semantic': False,
+            'pose': False
+        }
+        
+    async def get_vlm_service(self):
+        """Lazy load VLM service"""
+        if self.vlm_service is None:
+            logger.info("[ServiceRegistry] Loading VLM service...")
+            start = time.time()
+            
+            # Add python intelligence path
+            python_path = Path(__file__).parent.parent.parent / 'python' / 'intelligence'
+            sys.path.insert(0, str(python_path))
+            
+            from vlm_engine import VLMEngine
+            self.vlm_service = VLMEngine()
+            
+            # Initialize (loads model)
+            await self.vlm_service.initialize()
+            
+            elapsed = time.time() - start
+            logger.info(f"[ServiceRegistry] VLM service loaded in {elapsed:.2f}s")
+            self.services_initialized['vlm'] = True
+            
+        return self.vlm_service
+    
+    async def get_semantic_service(self):
+        """Lazy load Semantic service"""
+        if self.semantic_service is None:
+            logger.info("[ServiceRegistry] Loading Semantic service...")
+            start = time.time()
+            
+            python_path = Path(__file__).parent.parent.parent / 'python' / 'intelligence'
+            sys.path.insert(0, str(python_path))
+            
+            from semantic_engine import SemanticEngine
+            self.semantic_service = SemanticEngine()
+            await self.semantic_service.initialize()
+            
+            elapsed = time.time() - start
+            logger.info(f"[ServiceRegistry] Semantic service loaded in {elapsed:.2f}s")
+            self.services_initialized['semantic'] = True
+            
+        return self.semantic_service
+    
+    async def get_pose_service(self):
+        """Lazy load Pose service"""
+        if self.pose_service is None:
+            logger.info("[ServiceRegistry] Loading Pose service...")
+            start = time.time()
+            
+            python_path = Path(__file__).parent.parent.parent / 'python' / 'intelligence'
+            sys.path.insert(0, str(python_path))
+            
+            from pose_engine import PoseEngine
+            self.pose_service = PoseEngine()
+            await self.pose_service.initialize()
+            
+            elapsed = time.time() - start
+            logger.info(f"[ServiceRegistry] Pose service loaded in {elapsed:.2f}s")
+            self.services_initialized['pose'] = True
+            
+        return self.pose_service
+    
+    def get_status(self) -> Dict[str, Any]:
+        """Get current status of all services"""
+        return {
+            'vlm': {
+                'loaded': self.services_initialized['vlm'],
+                'ready': self.vlm_service is not None
+            },
+            'semantic': {
+                'loaded': self.services_initialized['semantic'],
+                'ready': self.semantic_service is not None
+            },
+            'pose': {
+                'loaded': self.services_initialized['pose'],
+                'ready': self.pose_service is not None
+            }
+        }
+
+# Global service registry
+registry = ServiceRegistry()
+
+# ============================================================================
+# AUTHENTICATION
+# ============================================================================
+
+async def verify_api_key(x_api_key: str = Header(None)):
+    """Verify API key from header"""
+    if x_api_key != API_KEY:
+        raise HTTPException(status_code=403, detail="Invalid API key")
+    return True
+
+# ============================================================================
+# REQUEST/RESPONSE MODELS
+# ============================================================================
+
+class VLMClassifyRequest(BaseModel):
+    image_path: str = Field(..., description="Absolute path to image file")
+    max_resolution: int = Field(1024, description="Max resolution for inference")
+
+class VLMCaptionRequest(BaseModel):
+    image_path: str = Field(..., description="Absolute path to image file")
+    max_resolution: int = Field(1024, description="Max resolution for inference")
+    prompt: Optional[str] = Field(None, description="Optional caption prompt")
+
+class VLMVerifyRequest(BaseModel):
+    candidates: List[str] = Field(..., description="List of image paths to verify")
+    query: str = Field(..., description="Query to verify against")
+    max_resolution: int = Field(1024, description="Max resolution for inference")
+
+class VLMSynthesizeRequest(BaseModel):
+    question: str = Field(..., description="User's question")
+    evidence: Dict[str, Any] = Field(..., description="Evidence from search/analysis")
+    persona: str = Field('professional', description="Response persona")
+    representative_images: Optional[List[str]] = Field(None, description="Sample images")
+    confidence_metrics: Optional[Dict[str, Any]] = Field(None, description="Confidence data")
+
+class SemanticSearchRequest(BaseModel):
+    query: str = Field(..., description="Text query")
+    query_type: str = Field('auto', description="Query type: person/object/scene/auto")
+    top_k: int = Field(50, description="Number of results")
+    use_multi_level: bool = Field(False, description="Use multi-level indexes")
+
+class SemanticEmbedRequest(BaseModel):
+    image_path: Optional[str] = Field(None, description="Image path to embed")
+    text: Optional[str] = Field(None, description="Text to embed")
+
+class PoseDetectRequest(BaseModel):
+    image_path: str = Field(..., description="Absolute path to image file")
+
+# ============================================================================
+# SYSTEM INFO HELPERS
+# ============================================================================
+
+def get_gpu_info() -> Dict[str, Any]:
+    """Get detailed GPU information"""
+    try:
+        gpus = GPUtil.getGPUs()
+        if not gpus:
+            return {'available': False, 'reason': 'No GPUs detected'}
+        
+        gpu = gpus[0]  # Primary GPU
+        return {
+            'available': True,
+            'name': gpu.name,
+            'driver': gpu.driver,
+            'memory_total_mb': gpu.memoryTotal,
+            'memory_used_mb': gpu.memoryUsed,
+            'memory_free_mb': gpu.memoryFree,
+            'memory_utilization_percent': round(gpu.memoryUtil * 100, 1),
+            'gpu_utilization_percent': round(gpu.load * 100, 1),
+            'temperature_c': gpu.temperature
+        }
+    except Exception as e:
+        logger.error(f"Failed to get GPU info: {e}")
+        return {'available': False, 'error': str(e)}
+
+def get_system_info() -> Dict[str, Any]:
+    """Get system resource info"""
+    try:
+        cpu_percent = psutil.cpu_percent(interval=0.1)
+        memory = psutil.virtual_memory()
+        disk = psutil.disk_usage('/')
+        
+        return {
+            'cpu_percent': cpu_percent,
+            'memory_total_gb': round(memory.total / (1024**3), 2),
+            'memory_used_gb': round(memory.used / (1024**3), 2),
+            'memory_available_gb': round(memory.available / (1024**3), 2),
+            'memory_percent': memory.percent,
+            'disk_total_gb': round(disk.total / (1024**3), 2),
+            'disk_used_gb': round(disk.used / (1024**3), 2),
+            'disk_free_gb': round(disk.free / (1024**3), 2),
+            'disk_percent': disk.percent
+        }
+    except Exception as e:
+        logger.error(f"Failed to get system info: {e}")
+        return {'error': str(e)}
+
+# ============================================================================
+# STATUS ENDPOINT (Public, no auth required for monitoring)
+# ============================================================================
+
+@app.get("/")
+async def root():
+    """Root endpoint - serve dashboard"""
+    dashboard_path = Path(__file__).parent.parent / 'dashboard' / 'index.html'
+    
+    if dashboard_path.exists():
+        with open(dashboard_path, 'r', encoding='utf-8') as f:
+            return HTMLResponse(content=f.read())
+    else:
+        return {"message": "CuteCaption Remote GPU Server", "dashboard": "/dashboard"}
+
+@app.get("/dashboard")
+async def dashboard():
+    """Dashboard page"""
+    dashboard_path = Path(__file__).parent.parent / 'dashboard' / 'index.html'
+    
+    if dashboard_path.exists():
+        with open(dashboard_path, 'r', encoding='utf-8') as f:
+            return HTMLResponse(content=f.read())
+    else:
+        return {"error": "Dashboard not found"}
+
+@app.get("/status")
+async def get_status():
+    """Get comprehensive server status"""
+    gpu_info = get_gpu_info()
+    system_info = get_system_info()
+    services = registry.get_status()
+    
+    return {
+        'server': 'CuteCaption Remote GPU',
+        'version': '1.0.0',
+        'uptime_seconds': time.time() - app.state.start_time,
+        'gpu': gpu_info,
+        'system': system_info,
+        'services': services,
+        'ready': any(services[s]['loaded'] for s in services)
+    }
+
+# ============================================================================
+# VLM ENDPOINTS
+# ============================================================================
+
+@app.post("/api/v1/vlm/classify", dependencies=[Depends(verify_api_key)])
+async def vlm_classify(request: VLMClassifyRequest):
+    """VLM image classification"""
+    try:
+        service = await registry.get_vlm_service()
+        
+        result = await service.process({
+            'action': 'classify_image',
+            'image_path': request.image_path,
+            'max_resolution': request.max_resolution
+        })
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"VLM classify error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/v1/vlm/caption", dependencies=[Depends(verify_api_key)])
+async def vlm_caption(request: VLMCaptionRequest):
+    """VLM image captioning"""
+    try:
+        service = await registry.get_vlm_service()
+        
+        result = await service.process({
+            'action': 'caption_image',
+            'image_path': request.image_path,
+            'max_resolution': request.max_resolution,
+            'prompt': request.prompt
+        })
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"VLM caption error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/v1/vlm/verify", dependencies=[Depends(verify_api_key)])
+async def vlm_verify(request: VLMVerifyRequest):
+    """VLM candidate verification"""
+    try:
+        service = await registry.get_vlm_service()
+        
+        result = await service.process({
+            'action': 'verify_candidates',
+            'candidates': request.candidates,
+            'query': request.query,
+            'max_resolution': request.max_resolution
+        })
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"VLM verify error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/v1/vlm/synthesize", dependencies=[Depends(verify_api_key)])
+async def vlm_synthesize(request: VLMSynthesizeRequest):
+    """VLM answer synthesis"""
+    try:
+        service = await registry.get_vlm_service()
+        
+        result = await service.process({
+            'action': 'synthesize_answer',
+            'question': request.question,
+            'evidence': request.evidence,
+            'persona': request.persona,
+            'representative_images': request.representative_images,
+            'confidence_metrics': request.confidence_metrics
+        })
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"VLM synthesize error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============================================================================
+# SEMANTIC ENDPOINTS
+# ============================================================================
+
+@app.post("/api/v1/semantic/search", dependencies=[Depends(verify_api_key)])
+async def semantic_search(request: SemanticSearchRequest):
+    """CLIP semantic search"""
+    try:
+        service = await registry.get_semantic_service()
+        
+        action = 'search_multi_level' if request.use_multi_level else 'search_similar'
+        
+        result = await service.process({
+            'action': action,
+            'query': request.query,
+            'query_type': request.query_type,
+            'top_k': request.top_k
+        })
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Semantic search error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/v1/semantic/embed", dependencies=[Depends(verify_api_key)])
+async def semantic_embed(request: SemanticEmbedRequest):
+    """Generate CLIP embeddings"""
+    try:
+        service = await registry.get_semantic_service()
+        
+        if request.image_path:
+            result = await service.process({
+                'action': 'embed_image',
+                'image_path': request.image_path
+            })
+        elif request.text:
+            result = await service.process({
+                'action': 'embed_text',
+                'text': request.text
+            })
+        else:
+            raise HTTPException(status_code=400, detail="Must provide image_path or text")
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Semantic embed error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============================================================================
+# POSE ENDPOINT
+# ============================================================================
+
+@app.post("/api/v1/pose/detect", dependencies=[Depends(verify_api_key)])
+async def pose_detect(request: PoseDetectRequest):
+    """MediaPipe pose detection"""
+    try:
+        service = await registry.get_pose_service()
+        
+        result = await service.process({
+            'action': 'detect_pose',
+            'image_path': request.image_path
+        })
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Pose detect error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============================================================================
+# WEBSOCKET FOR REAL-TIME UPDATES
+# ============================================================================
+
+class ConnectionManager:
+    """Manages WebSocket connections"""
+    
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+    
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+        logger.info(f"WebSocket connected. Total connections: {len(self.active_connections)}")
+    
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+        logger.info(f"WebSocket disconnected. Total connections: {len(self.active_connections)}")
+    
+    async def broadcast(self, message: dict):
+        """Broadcast message to all connected clients"""
+        for connection in self.active_connections:
+            try:
+                await connection.send_json(message)
+            except Exception as e:
+                logger.error(f"Failed to send to WebSocket: {e}")
+
+manager = ConnectionManager()
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    """WebSocket for real-time progress updates"""
+    await manager.connect(websocket)
+    try:
+        while True:
+            # Keep connection alive and handle incoming messages
+            data = await websocket.receive_text()
+            # Echo back for testing
+            await websocket.send_json({"type": "echo", "data": data})
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+
+# ============================================================================
+# LIFECYCLE EVENTS
+# ============================================================================
+
+@app.on_event("startup")
+async def startup_event():
+    """Server startup"""
+    app.state.start_time = time.time()
+    logger.info("=" * 80)
+    logger.info("CuteCaption Remote GPU Server Starting")
+    logger.info("=" * 80)
+    logger.info(f"Host: {HOST}:{PORT}")
+    logger.info(f"Model Cache: {MODEL_CACHE}")
+    logger.info(f"API Key: {'*' * (len(API_KEY) - 4)}{API_KEY[-4:]}")
+    
+    # Log GPU info
+    gpu_info = get_gpu_info()
+    if gpu_info.get('available'):
+        logger.info(f"GPU: {gpu_info['name']}")
+        logger.info(f"VRAM: {gpu_info['memory_total_mb']} MB")
+    else:
+        logger.warning("No GPU detected!")
+    
+    logger.info("=" * 80)
+    logger.info("Server ready for connections")
+    logger.info("Services will be loaded on first request (lazy loading)")
+    logger.info("=" * 80)
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Server shutdown - cleanup models"""
+    logger.info("Shutting down server...")
+    
+    # Cleanup services
+    if registry.vlm_service:
+        logger.info("Unloading VLM service...")
+        # Add cleanup if needed
+    
+    if registry.semantic_service:
+        logger.info("Unloading Semantic service...")
+        # Add cleanup if needed
+    
+    if registry.pose_service:
+        logger.info("Unloading Pose service...")
+        # Add cleanup if needed
+    
+    logger.info("Shutdown complete")
+
+# ============================================================================
+# MAIN
+# ============================================================================
+
+if __name__ == "__main__":
+    uvicorn.run(
+        "main:app",
+        host=HOST,
+        port=PORT,
+        log_level="info",
+        access_log=True
+    )
+

@@ -1,0 +1,83 @@
+{
+  "name": "CuteCaption Remote GPU",
+  "version": "1.0.0",
+  "description": "High-performance GPU inference server for CuteCaption AI dataset curation. Offload VLM (Qwen3-VL), Semantic (CLIP-SAE), and Pose (MediaPipe) processing to remote GPU.",
+  "category": "AI/ML",
+  "tags": ["computer-vision", "vlm", "clip", "pose-detection", "dataset-curation", "cuda", "pytorch"],
+  
+  "container": {
+    "image": "your-dockerhub-username/cutecaption-remote-gpu:latest",
+    "registry_auth": false
+  },
+  
+  "compute_requirements": {
+    "gpu": {
+      "required": true,
+      "min_vram_gb": 24,
+      "recommended_models": ["RTX 4090", "RTX 5090", "A6000"]
+    },
+    "ram_gb": 64,
+    "storage_gb": 20
+  },
+  
+  "ports": [
+    {
+      "container_port": 8080,
+      "protocol": "http",
+      "description": "Dashboard & REST API"
+    }
+  ],
+  
+  "volumes": [
+    {
+      "mount_path": "/workspace/models",
+      "size_gb": 50,
+      "description": "Persistent model cache (HuggingFace models)"
+    }
+  ],
+  
+  "environment_variables": [
+    {
+      "key": "CUTECAPTION_API_KEY",
+      "value": "",
+      "required": true,
+      "description": "API key for authentication (CHANGE THIS!)",
+      "secret": true
+    },
+    {
+      "key": "CUTECAPTION_MODEL_CACHE",
+      "value": "/workspace/models",
+      "required": false,
+      "description": "HuggingFace model cache directory"
+    },
+    {
+      "key": "CUTECAPTION_HOST",
+      "value": "0.0.0.0",
+      "required": false,
+      "description": "Server bind address"
+    },
+    {
+      "key": "CUTECAPTION_PORT",
+      "value": "8080",
+      "required": false,
+      "description": "Server port"
+    }
+  ],
+  
+  "start_command": "python3 /workspace/server/main.py",
+  
+  "readme": "# CuteCaption Remote GPU Server\n\n## Features\n- **VLM (Qwen3-VL)**: Image classification, captioning, reasoning\n- **Semantic (CLIP-SAE)**: Semantic search, embedding generation\n- **Pose (MediaPipe)**: Human pose detection\n- **Real-time Dashboard**: Monitor GPU usage, service status, activity logs\n- **WebSocket Support**: Live progress updates\n\n## Quick Start\n1. Deploy this template on RunPod\n2. Open port 8080 in browser to access dashboard\n3. Copy server address and API key\n4. In CuteCaption → Settings → Remote GPU:\n   - Enable \"Use Remote GPU\"\n   - Enter server address\n   - Enter API key\n5. Start analyzing!\n\n## Recommended GPUs\n- **RTX 4090** (24GB VRAM) - Best value\n- **RTX 5090** (32GB VRAM) - Ultimate performance\n- **A6000** (48GB VRAM) - Large batch processing\n\n## Support\nDocs: https://github.com/cutecaption\nDiscord: https://discord.gg/2gQ5eBtRCj",
+  
+  "healthcheck": {
+    "endpoint": "/status",
+    "interval_seconds": 30,
+    "timeout_seconds": 10
+  },
+  
+  "pricing_estimate": {
+    "rtx_4090_hourly": 0.79,
+    "rtx_5090_hourly": 1.49,
+    "currency": "USD"
+  }
+}
+
