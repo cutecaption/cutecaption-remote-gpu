@@ -7,11 +7,23 @@ git+https://github.com/huggingface/transformers
 accelerate
 bitsandbytes
 safetensors
+numpy
+
+# FAISS for semantic search
 faiss-cpu
+
+# CLIP for semantic engine (open_clip)
+open-clip-torch
 git+https://github.com/openai/CLIP.git
 
 # Qwen VL utilities (required for process_vision_info)
 qwen-vl-utils
+
+# MediaPipe for pose detection
+mediapipe
+
+# OpenCV for image processing (pose engine needs cv2)
+opencv-python-headless
 
 # Model-specific dependencies
 sentencepiece

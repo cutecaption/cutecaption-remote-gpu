@@ -96,8 +96,11 @@ class ServiceRegistry:
             start = time.time()
             
             # Add python intelligence path
-            python_path = Path(__file__).parent.parent.parent / 'python' / 'intelligence'
+            # In Docker: /workspace/server/main.py -> /workspace/python/intelligence
+            # Path structure: /workspace/server/../python/intelligence = /workspace/python/intelligence
+            python_path = Path(__file__).parent.parent / 'python' / 'intelligence'
             sys.path.insert(0, str(python_path))
+            logger.info(f"[ServiceRegistry] Python intelligence path: {python_path}")
             
             from vlm_engine import VLMEngine
             self.vlm_service = VLMEngine()
@@ -117,8 +120,9 @@ class ServiceRegistry:
             logger.info("[ServiceRegistry] Loading Semantic service...")
             start = time.time()
             
-            python_path = Path(__file__).parent.parent.parent / 'python' / 'intelligence'
+            python_path = Path(__file__).parent.parent / 'python' / 'intelligence'
             sys.path.insert(0, str(python_path))
+            logger.info(f"[ServiceRegistry] Python intelligence path: {python_path}")
             
             from semantic_engine import SemanticEngine
             self.semantic_service = SemanticEngine()
@@ -136,8 +140,9 @@ class ServiceRegistry:
             logger.info("[ServiceRegistry] Loading Pose service...")
             start = time.time()
             
-            python_path = Path(__file__).parent.parent.parent / 'python' / 'intelligence'
+            python_path = Path(__file__).parent.parent / 'python' / 'intelligence'
             sys.path.insert(0, str(python_path))
+            logger.info(f"[ServiceRegistry] Python intelligence path: {python_path}")
             
             from pose_engine import PoseEngine
             self.pose_service = PoseEngine()
