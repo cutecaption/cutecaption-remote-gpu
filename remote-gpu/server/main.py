@@ -315,6 +315,19 @@ class QwenVideoCaptionRequest(BaseModel):
 # SYSTEM INFO HELPERS
 # ============================================================================
 
+def _safe_float(value, default=0.0):
+    """Convert value to JSON-safe float (handles inf, nan)"""
+    import math
+    if value is None:
+        return default
+    try:
+        f = float(value)
+        if math.isnan(f) or math.isinf(f):
+            return default
+        return f
+    except (TypeError, ValueError):
+        return default
+
 def get_gpu_info() -> Dict[str, Any]:
     """Get detailed GPU information"""
     try:
@@ -325,14 +338,14 @@ def get_gpu_info() -> Dict[str, Any]:
         gpu = gpus[0]  # Primary GPU
         return {
             'available': True,
-            'name': gpu.name,
-            'driver': gpu.driver,
-            'memory_total_mb': gpu.memoryTotal,
-            'memory_used_mb': gpu.memoryUsed,
-            'memory_free_mb': gpu.memoryFree,
-            'memory_utilization_percent': round(gpu.memoryUtil * 100, 1),
-            'gpu_utilization_percent': round(gpu.load * 100, 1),
-            'temperature_c': gpu.temperature
+            'name': gpu.name or 'Unknown GPU',
+            'driver': gpu.driver or 'Unknown',
+            'memory_total_mb': _safe_float(gpu.memoryTotal),
+            'memory_used_mb': _safe_float(gpu.memoryUsed),
+            'memory_free_mb': _safe_float(gpu.memoryFree),
+            'memory_utilization_percent': round(_safe_float(gpu.memoryUtil) * 100, 1),
+            'gpu_utilization_percent': round(_safe_float(gpu.load) * 100, 1),
+            'temperature_c': _safe_float(gpu.temperature, default=None)
         }
     except Exception as e:
         logger.error(f"Failed to get GPU info: {e}")
