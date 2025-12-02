@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CuteCaption Qwen Server</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --ai-primary: #a855f7;
+            --ai-primary-dim: rgba(168, 85, 247, 0.6);
+            --ai-primary-subtle: rgba(168, 85, 247, 0.12);
+            --ai-secondary: #6366f1;
+            --ai-accent: #22d3ee;
+            --ai-success: #10b981;
+            --ai-warning: #f59e0b;
+            --ai-error: #ef4444;
+            --ai-info: #3b82f6;
+            --bg-primary: #09090b;
+            --bg-elevated: #0f0f12;
+            --bg-card: #141418;
+            --bg-hover: #1f1f24;
+            --border-subtle: rgba(255, 255, 255, 0.04);
+            --border-default: rgba(255, 255, 255, 0.06);
+            --border-focus: rgba(168, 85, 247, 0.4);
+            --text-primary: rgba(255, 255, 255, 0.92);
+            --text-secondary: rgba(255, 255, 255, 0.55);
+            --text-muted: rgba(255, 255, 255, 0.32);
+            --text-xs: 10px;
+            --text-sm: 11px;
+            --text-base: 12px;
+            --text-lg: 14px;
+            --spacing-xs: 4px;
+            --spacing-sm: 8px;
+            --spacing-md: 12px;
+            --spacing-lg: 18px;
+            --spacing-xl: 24px;
+            --radius-sm: 4px;
+            --radius-md: 6px;
+            --radius-lg: 10px;
+            --shadow-glow: 0 0 20px rgba(168, 85, 247, 0.15);
+            --shadow-glow-strong: 0 0 30px rgba(168, 85, 247, 0.25);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: var(--text-base);
+            line-height: 1.4;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: 
+                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(168, 85, 247, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse 60% 40% at 100% 100%, rgba(99, 102, 241, 0.04) 0%, transparent 40%);
+            pointer-events: none;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(180deg, rgba(168, 85, 247, 0.05) 0%, rgba(15, 15, 18, 0.95) 100%);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border-subtle);
+            padding: var(--spacing-sm) var(--spacing-lg);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .logo-icon {
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, var(--ai-primary) 0%, var(--ai-secondary) 100%);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 12px rgba(168, 85, 247, 0.4);
+        }
+
+        .logo-icon svg { width: 12px; height: 12px; fill: white; }
+
+        .logo-text {
+            font-size: var(--text-sm);
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+
+        .logo-text span { color: var(--ai-primary); }
+
+        .version-tag {
+            font-size: 9px;
+            color: var(--text-muted);
+            background: var(--bg-card);
+            padding: 2px 6px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-default);
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            font-size: var(--text-xs);
+            font-weight: 500;
+            background: var(--bg-card);
+            border: 1px solid var(--border-default);
+            backdrop-filter: blur(4px);
+        }
+
+        .status-badge.online { background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.3); color: #34d399; box-shadow: 0 0 12px rgba(16, 185, 129, 0.2); }
+        .status-badge.loading { background: rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.3); color: #fbbf24; }
+        .status-badge.offline { background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.2); color: #f87171; }
+
+        .status-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+        .status-badge.online .status-dot { animation: pulse 2s infinite; box-shadow: 0 0 6px currentColor; }
+        .status-badge.loading .status-dot { animation: blink 0.6s infinite; }
+
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        /* Container */
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: var(--spacing-lg);
+        }
+
+        /* Grid */
+        .grid { display: grid; gap: var(--spacing-md); margin-bottom: var(--spacing-md); }
+        .grid-2 { grid-template-columns: 1fr 1fr; }
+        .grid-4 { grid-template-columns: repeat(4, 1fr); }
+        .grid-6 { grid-template-columns: repeat(6, 1fr); }
+
+        /* Card */
+        .card {
+            background: var(--bg-card);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-md);
+            transition: all 0.2s;
+        }
+
+        .card:hover { border-color: var(--border-focus); box-shadow: var(--shadow-glow); }
+
+        .card-title {
+            font-size: var(--text-xs);
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        /* Metrics */
+        .metric-label {
+            font-size: var(--text-xs);
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 2px;
+        }
+
+        .metric-value {
+            font-size: var(--text-lg);
+            font-weight: 600;
+        }
+
+        .metric-bar {
+            width: 100%;
+            height: 4px;
+            background: var(--bg-hover);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+
+        .metric-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--ai-primary), var(--ai-secondary));
+            transition: width 0.4s ease;
+        }
+
+        .metric-bar-fill.critical { background: linear-gradient(90deg, var(--ai-error), var(--ai-warning)); }
+
+        /* Server Details */
+        .server-details {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 1px;
+            background: var(--border-default);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+        }
+
+        .detail-item {
+            background: var(--bg-card);
+            padding: var(--spacing-sm) var(--spacing-md);
+            text-align: center;
+        }
+
+        .detail-item .metric-label { margin-bottom: 3px; }
+        .detail-item .metric-value { font-size: var(--text-sm); }
+
+        /* Connection Info Card */
+        .connection-card {
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.08) 0%, rgba(99, 102, 241, 0.04) 100%);
+            border: 1px solid var(--border-focus);
+        }
+
+        .connection-card .card-title {
+            color: var(--ai-primary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .connection-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-sm);
+        }
+
+        .connection-item {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            padding: var(--spacing-sm);
+        }
+
+        .connection-item .conn-label {
+            font-size: 9px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 3px;
+        }
+
+        .connection-item .conn-value {
+            font-family: 'SF Mono', 'Menlo', monospace;
+            font-size: var(--text-xs);
+            color: var(--text-primary);
+            word-break: break-all;
+            user-select: all;
+            cursor: text;
+        }
+
+        .connection-item .conn-value.secret {
+            color: var(--ai-primary);
+        }
+
+        .connection-actions {
+            display: flex;
+            gap: var(--spacing-sm);
+            margin-top: var(--spacing-sm);
+            padding-top: var(--spacing-sm);
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        .copy-btn {
+            flex: 1;
+            padding: var(--spacing-xs) var(--spacing-sm);
+            background: var(--bg-hover);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-size: var(--text-xs);
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .copy-btn:hover {
+            background: var(--ai-primary-subtle);
+            border-color: var(--border-focus);
+            color: var(--ai-primary);
+        }
+
+        .copy-btn svg { width: 12px; height: 12px; }
+
+        /* Service row */
+        .service-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-sm);
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+        }
+
+        .service-info { display: flex; align-items: center; gap: var(--spacing-sm); }
+
+        .service-icon {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, var(--ai-primary), var(--ai-secondary));
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 12px rgba(168, 85, 247, 0.3);
+        }
+
+        .service-icon svg { width: 16px; height: 16px; fill: white; }
+        .service-name { font-size: var(--text-sm); font-weight: 500; }
+        .service-model { font-size: var(--text-xs); color: var(--text-muted); }
+
+        .service-status {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: var(--text-xs);
+            padding: 3px 10px;
+            border-radius: 9999px;
+            font-weight: 500;
+        }
+
+        .service-status.loaded { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+        .service-status.standby { background: rgba(245, 158, 11, 0.1); color: #fbbf24; }
+
+        /* Action buttons */
+        .action-btn-group {
+            display: flex;
+            gap: var(--spacing-sm);
+            margin-top: var(--spacing-md);
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: var(--spacing-sm) var(--spacing-md);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-md);
+            font-size: var(--text-sm);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .action-btn svg { width: 14px; height: 14px; }
+
+        .action-btn.primary {
+            background: linear-gradient(135deg, var(--ai-primary) 0%, var(--ai-secondary) 100%);
+            border: none;
+            color: white;
+            box-shadow: 0 2px 12px rgba(168, 85, 247, 0.35);
+        }
+
+        .action-btn.primary::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .action-btn.primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(168, 85, 247, 0.5), var(--shadow-glow-strong);
+        }
+
+        .action-btn.primary:hover:not(:disabled)::before { opacity: 1; }
+        .action-btn.primary:active:not(:disabled) { transform: translateY(0); }
+
+        .action-btn.secondary {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .action-btn.secondary:hover:not(:disabled) {
+            border-color: var(--border-focus);
+            background: var(--bg-hover);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .action-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+
+        /* Toggle */
+        .toggle-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-sm);
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            margin-top: var(--spacing-sm);
+        }
+
+        .toggle-label { font-size: var(--text-sm); }
+        .toggle-desc { font-size: var(--text-xs); color: var(--text-muted); }
+
+        .toggle {
+            width: 32px;
+            height: 18px;
+            background: var(--bg-hover);
+            border: 1px solid var(--border-default);
+            border-radius: 10px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .toggle::after {
+            content: '';
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: var(--text-muted);
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: all 0.2s;
+        }
+
+        .toggle.active { background: var(--ai-primary); border-color: var(--ai-primary); }
+        .toggle.active::after { background: white; left: 16px; }
+
+        /* Logs */
+        .logs-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+        }
+
+        .logs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-sm) var(--spacing-md);
+            background: var(--bg-elevated);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .logs-title {
+            font-size: var(--text-xs);
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .logs-clear {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: var(--text-xs);
+            cursor: pointer;
+            padding: 3px 8px;
+            border-radius: var(--radius-sm);
+            transition: all 0.15s;
+        }
+
+        .logs-clear:hover { background: var(--bg-hover); color: var(--text-secondary); }
+
+        .logs {
+            padding: var(--spacing-sm);
+            max-height: 140px;
+            overflow-y: auto;
+            font-family: 'SF Mono', 'Menlo', monospace;
+            font-size: var(--text-xs);
+            line-height: 1.6;
+        }
+
+        .log-entry { display: flex; gap: var(--spacing-sm); padding: 2px 0; }
+        .log-time { color: var(--text-muted); flex-shrink: 0; width: 55px; }
+        .log-level { flex-shrink: 0; width: 40px; text-transform: uppercase; font-weight: 500; }
+        .log-level.info { color: var(--ai-info); }
+        .log-level.success { color: var(--ai-success); }
+        .log-level.warning { color: var(--ai-warning); }
+        .log-level.error { color: var(--ai-error); }
+        .log-message { color: var(--text-secondary); word-break: break-word; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--ai-primary-dim); }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .server-details { grid-template-columns: repeat(3, 1fr); }
+            .connection-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 600px) {
+            .grid-2 { grid-template-columns: 1fr; }
+            .grid-4 { grid-template-columns: repeat(2, 1fr); }
+            .server-details { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                </div>
+                <span class="logo-text">Cute<span>Caption</span></span>
+            </div>
+            <span class="version-tag">Qwen Server v1.0</span>
+        </div>
+        <div class="status-badge offline" id="serverStatus">
+            <div class="status-dot"></div>
+            <span>Checking</span>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Connection Info Card - Copy these to CuteCaption -->
+        <div class="card connection-card" style="margin-bottom: var(--spacing-md);">
+            <div class="card-title">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                </svg>
+                Copy to CuteCaption Settings
+            </div>
+            <div class="connection-grid">
+                <div class="connection-item">
+                    <div class="conn-label">Server URL</div>
+                    <div class="conn-value" id="connServerUrl">Waiting for server...</div>
+                </div>
+                <div class="connection-item">
+                    <div class="conn-label">API Endpoint</div>
+                    <div class="conn-value" id="connApiEndpoint">--</div>
+                </div>
+                <div class="connection-item">
+                    <div class="conn-label">WebSocket</div>
+                    <div class="conn-value" id="connWebSocket">--</div>
+                </div>
+                <div class="connection-item">
+                    <div class="conn-label">API Key</div>
+                    <div class="conn-value secret" id="connApiKey">--</div>
+                </div>
+            </div>
+            <div class="connection-actions">
+                <button class="copy-btn" onclick="copyServerUrl()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                    Copy URL
+                </button>
+                <button class="copy-btn" onclick="copyApiKey()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+                    Copy Key
+                </button>
+                <button class="copy-btn" onclick="copyAll()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+                    Copy All
+                </button>
+            </div>
+        </div>
+
+        <!-- Server Details Row -->
+        <div class="server-details" style="margin-bottom: var(--spacing-md);">
+            <div class="detail-item">
+                <div class="metric-label">Uptime</div>
+                <div class="metric-value" id="uptime">--</div>
+            </div>
+            <div class="detail-item">
+                <div class="metric-label">GPU</div>
+                <div class="metric-value" id="gpuName" style="font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">--</div>
+            </div>
+            <div class="detail-item">
+                <div class="metric-label">vCPU</div>
+                <div class="metric-value" id="vcpuCount">--</div>
+            </div>
+            <div class="detail-item">
+                <div class="metric-label">Memory</div>
+                <div class="metric-value" id="sysMemory">--</div>
+            </div>
+            <div class="detail-item">
+                <div class="metric-label">Disk</div>
+                <div class="metric-value" id="diskUsage">--</div>
+            </div>
+            <div class="detail-item">
+                <div class="metric-label">Processes</div>
+                <div class="metric-value" id="processCount">--</div>
+            </div>
+        </div>
+
+        <!-- GPU + Qwen Service -->
+        <div class="grid grid-2">
+            <!-- GPU Card -->
+            <div class="card">
+                <div class="card-title">GPU Usage</div>
+                <div style="display: flex; gap: var(--spacing-lg);">
+                    <div style="flex: 1;">
+                        <div class="metric-label">VRAM</div>
+                        <div class="metric-value" style="font-size: var(--text-base);">
+                            <span id="gpuMemUsed">--</span>/<span id="gpuMemTotal">--</span> GB
+                        </div>
+                        <div class="metric-bar"><div class="metric-bar-fill" id="gpuMemBar" style="width: 0%"></div></div>
+                    </div>
+                    <div style="flex: 1;">
+                        <div class="metric-label">Utilization</div>
+                        <div class="metric-value" style="font-size: var(--text-base);"><span id="gpuUtil">--</span>%</div>
+                        <div class="metric-bar"><div class="metric-bar-fill" id="gpuUtilBar" style="width: 0%"></div></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Qwen Service Card -->
+            <div class="card">
+                <div class="card-title">Qwen VLM</div>
+                <div class="service-row">
+                    <div class="service-info">
+                        <div class="service-icon">
+                            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                        </div>
+                        <div>
+                            <div class="service-name">Qwen3-VL-8B</div>
+                            <div class="service-model">Vision-Language Model</div>
+                        </div>
+                    </div>
+                    <span class="service-status standby" id="qwenStatus">
+                        <span class="status-dot"></span>Standby
+                    </span>
+                </div>
+                <div class="action-btn-group">
+                    <button class="action-btn primary" id="loadBtn" onclick="loadModel()">
+                        <svg fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                        Load Model
+                    </button>
+                    <button class="action-btn secondary" id="unloadBtn" onclick="unloadModel()" disabled>
+                        <svg fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>
+                        Unload
+                    </button>
+                </div>
+                <div class="toggle-row">
+                    <div>
+                        <div class="toggle-label">Auto-load on connect</div>
+                        <div class="toggle-desc">Load model when CuteCaption connects</div>
+                    </div>
+                    <div class="toggle active" id="autoLoadToggle" onclick="toggleAutoLoad()"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="grid grid-4">
+            <div class="card" style="text-align: center;">
+                <div class="metric-label">Load Time</div>
+                <div class="metric-value" id="loadTime">--</div>
+            </div>
+            <div class="card" style="text-align: center;">
+                <div class="metric-label">Inferences</div>
+                <div class="metric-value" id="inferenceCount">0</div>
+            </div>
+            <div class="card" style="text-align: center;">
+                <div class="metric-label">CPU Load</div>
+                <div class="metric-value" id="cpuUtil">--%</div>
+            </div>
+            <div class="card" style="text-align: center;">
+                <div class="metric-label">Volume</div>
+                <div class="metric-value" id="volumeUsage">--</div>
+            </div>
+        </div>
+
+        <!-- Activity Log -->
+        <div class="logs-container">
+            <div class="logs-header">
+                <span class="logs-title">Activity</span>
+                <button class="logs-clear" onclick="clearLogs()">Clear</button>
+            </div>
+            <div class="logs" id="activityLog">
+                <div class="log-entry">
+                    <span class="log-time">00:00:00</span>
+                    <span class="log-level info">INFO</span>
+                    <span class="log-message">Dashboard ready</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const API_BASE = window.location.origin;
+        let ws = null, statusInterval = null, autoLoad = true;
+        let wasConnected = false, lastErrorLogged = false, initialLoad = true;
+        let connectionInfo = {};
+
+        document.addEventListener('DOMContentLoaded', () => {
+            startStatusPolling();
+            setTimeout(connectWebSocket, 1000);
+        });
+
+        function startStatusPolling() {
+            fetchStatus();
+            statusInterval = setInterval(fetchStatus, 3000);
+        }
+
+        async function fetchStatus() {
+            try {
+                const res = await fetch(`${API_BASE}/status`);
+                const data = await res.json();
+                
+                if (!wasConnected) {
+                    log('success', 'Connected to server');
+                    wasConnected = true;
+                    lastErrorLogged = false;
+                }
+                
+                // Update connection info from server
+                if (data.connection) {
+                    connectionInfo = data.connection;
+                    updateConnectionDisplay(data.connection);
+                }
+                
+                updateServerStatus(data);
+                updateGPU(data.gpu);
+                updateQwenStatus(data.qwen);
+                updateServerDetails(data);
+                initialLoad = false;
+                
+            } catch (error) {
+                if (!lastErrorLogged && !initialLoad) {
+                    log('warning', 'Server not responding');
+                    lastErrorLogged = true;
+                }
+                wasConnected = false;
+                markOffline();
+                initialLoad = false;
+            }
+        }
+
+        function updateConnectionDisplay(conn) {
+            if (conn.server_url) {
+                document.getElementById('connServerUrl').textContent = conn.server_url;
+            }
+            if (conn.api_endpoint) {
+                document.getElementById('connApiEndpoint').textContent = conn.api_endpoint;
+            }
+            if (conn.websocket_url) {
+                document.getElementById('connWebSocket').textContent = conn.websocket_url;
+            }
+            if (conn.api_key) {
+                // Show full API key for user to copy
+                document.getElementById('connApiKey').textContent = conn.api_key;
+            }
+        }
+
+        function updateServerStatus(data) {
+            const badge = document.getElementById('serverStatus');
+            if (data.qwen?.loaded) {
+                badge.className = 'status-badge online';
+                badge.querySelector('span').textContent = 'Ready';
+            } else if (data.qwen?.loading) {
+                badge.className = 'status-badge loading';
+                badge.querySelector('span').textContent = 'Loading';
+            } else {
+                badge.className = 'status-badge offline';
+                badge.querySelector('span').textContent = 'Standby';
+            }
+        }
+
+        function updateGPU(gpu) {
+            if (!gpu?.available) {
+                document.getElementById('gpuName').textContent = 'No GPU';
+                return;
+            }
+            
+            const name = gpu.name?.replace('NVIDIA ', '').replace('GeForce ', '') || 'GPU';
+            document.getElementById('gpuName').textContent = name;
+            
+            const usedGB = (gpu.memory_used_mb / 1024).toFixed(1);
+            const totalGB = (gpu.memory_total_mb / 1024).toFixed(0);
+            const memPercent = gpu.memory_utilization_percent || (gpu.memory_used_mb / gpu.memory_total_mb * 100);
+            
+            document.getElementById('gpuMemUsed').textContent = usedGB;
+            document.getElementById('gpuMemTotal').textContent = totalGB;
+            document.getElementById('gpuMemBar').style.width = `${memPercent}%`;
+            document.getElementById('gpuMemBar').className = 'metric-bar-fill' + (memPercent > 90 ? ' critical' : '');
+            
+            const gpuUtil = gpu.gpu_utilization_percent || 0;
+            document.getElementById('gpuUtil').textContent = gpuUtil.toFixed(0);
+            document.getElementById('gpuUtilBar').style.width = `${gpuUtil}%`;
+        }
+
+        function updateQwenStatus(qwen) {
+            if (!qwen) return;
+            
+            const status = document.getElementById('qwenStatus');
+            const loadBtn = document.getElementById('loadBtn');
+            const unloadBtn = document.getElementById('unloadBtn');
+            
+            if (qwen.loaded) {
+                status.className = 'service-status loaded';
+                status.innerHTML = '<span class="status-dot"></span>Loaded';
+                loadBtn.disabled = true;
+                unloadBtn.disabled = false;
+            } else if (qwen.loading) {
+                status.className = 'service-status';
+                status.innerHTML = '<span class="status-dot" style="animation: blink 0.6s infinite"></span>Loading';
+                loadBtn.disabled = true;
+                unloadBtn.disabled = true;
+            } else {
+                status.className = 'service-status standby';
+                status.innerHTML = '<span class="status-dot"></span>Standby';
+                loadBtn.disabled = false;
+                unloadBtn.disabled = true;
+            }
+            
+            document.getElementById('inferenceCount').textContent = qwen.inference_count || 0;
+            document.getElementById('loadTime').textContent = qwen.load_time_seconds ? `${qwen.load_time_seconds.toFixed(1)}s` : '--';
+        }
+
+        function updateServerDetails(data) {
+            const uptime = Math.floor(data.uptime_seconds || 0);
+            document.getElementById('uptime').textContent = formatUptime(uptime);
+            
+            const sys = data.system || {};
+            document.getElementById('vcpuCount').textContent = sys.cpu_count || '--';
+            document.getElementById('cpuUtil').textContent = sys.cpu_percent !== undefined ? `${sys.cpu_percent.toFixed(0)}%` : '--%';
+            
+            if (sys.memory_total_gb) {
+                const memUsed = sys.memory_used_gb?.toFixed(0) || '--';
+                const memTotal = sys.memory_total_gb?.toFixed(0) || '--';
+                document.getElementById('sysMemory').textContent = `${memUsed}/${memTotal}G`;
+            }
+            
+            if (sys.disk_total_gb) {
+                const diskUsed = sys.disk_used_gb?.toFixed(0) || '--';
+                const diskTotal = sys.disk_total_gb?.toFixed(0) || '--';
+                document.getElementById('diskUsage').textContent = `${diskUsed}/${diskTotal}G`;
+            }
+            
+            if (sys.volume_total_gb) {
+                const volUsed = sys.volume_used_gb?.toFixed(0) || '--';
+                const volTotal = sys.volume_total_gb?.toFixed(0) || '--';
+                document.getElementById('volumeUsage').textContent = `${volUsed}/${volTotal}G`;
+            }
+            
+            document.getElementById('processCount').textContent = sys.process_count || '--';
+        }
+
+        function markOffline() {
+            document.getElementById('serverStatus').className = 'status-badge offline';
+            document.getElementById('serverStatus').querySelector('span').textContent = 'Offline';
+        }
+
+        async function loadModel() {
+            log('info', 'Loading Qwen3-VL model...');
+            try {
+                const apiKey = connectionInfo.api_key || 'dev';
+                const res = await fetch(`${API_BASE}/api/v1/load`, { 
+                    method: 'POST', 
+                    headers: { 'X-API-Key': apiKey } 
+                });
+                const data = await res.json();
+                if (data.status === 'loaded') log('success', `Model loaded in ${data.load_time_seconds}s`);
+                else if (data.status === 'already_loaded') log('info', 'Already loaded');
+                else log('warning', data.message || 'Unknown response');
+            } catch (error) { log('error', `Load failed: ${error.message}`); }
+        }
+
+        async function unloadModel() {
+            log('info', 'Unloading model...');
+            try {
+                const apiKey = connectionInfo.api_key || 'dev';
+                await fetch(`${API_BASE}/api/v1/unload`, { 
+                    method: 'POST', 
+                    headers: { 'X-API-Key': apiKey } 
+                });
+                log('success', 'Model unloaded');
+            } catch (error) { log('error', `Unload failed: ${error.message}`); }
+        }
+
+        function toggleAutoLoad() {
+            autoLoad = !autoLoad;
+            document.getElementById('autoLoadToggle').classList.toggle('active', autoLoad);
+            log('info', `Auto-load ${autoLoad ? 'enabled' : 'disabled'}`);
+        }
+
+        let wsConnected = false;
+        function connectWebSocket() {
+            try {
+                const wsProto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                ws = new WebSocket(`${wsProto}//${window.location.host}/ws`);
+                ws.onopen = () => { if (!wsConnected) { log('success', 'WebSocket connected'); wsConnected = true; } };
+                ws.onmessage = (e) => { try { const d = JSON.parse(e.data); if (d.type !== 'echo') log('info', `WS: ${JSON.stringify(d)}`); } catch (_) {} };
+                ws.onerror = () => {};
+                ws.onclose = () => { wsConnected = false; setTimeout(connectWebSocket, 5000); };
+            } catch (_) {}
+        }
+
+        function log(level, message) {
+            const container = document.getElementById('activityLog');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+            entry.innerHTML = `<span class="log-time">${time}</span><span class="log-level ${level}">${level.toUpperCase().substring(0,4)}</span><span class="log-message">${message}</span>`;
+            container.appendChild(entry);
+            container.scrollTop = container.scrollHeight;
+            while (container.children.length > 50) container.removeChild(container.firstChild);
+        }
+
+        function clearLogs() {
+            document.getElementById('activityLog').innerHTML = '';
+            log('info', 'Cleared');
+        }
+
+        function formatUptime(s) {
+            const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+            if (h > 0) return `${h}h ${m}m`;
+            if (m > 0) return `${m}m ${sec}s`;
+            return `${sec}s`;
+        }
+
+        // Copy functions
+        function copyServerUrl() {
+            const url = connectionInfo.server_url || document.getElementById('connServerUrl').textContent;
+            navigator.clipboard.writeText(url);
+            log('success', 'Server URL copied');
+        }
+
+        function copyApiKey() {
+            const key = connectionInfo.api_key || document.getElementById('connApiKey').textContent;
+            navigator.clipboard.writeText(key);
+            log('success', 'API Key copied');
+        }
+
+        function copyAll() {
+            const info = `Server URL: ${connectionInfo.server_url || '--'}
+API Endpoint: ${connectionInfo.api_endpoint || '--'}
+WebSocket: ${connectionInfo.websocket_url || '--'}
+API Key: ${connectionInfo.api_key || '--'}`;
+            navigator.clipboard.writeText(info);
+            log('success', 'All connection info copied');
+        }
+
+        window.addEventListener('beforeunload', () => {
+            if (statusInterval) clearInterval(statusInterval);
+            if (ws) ws.close();
+        });
+    </script>
+</body>
+</html>

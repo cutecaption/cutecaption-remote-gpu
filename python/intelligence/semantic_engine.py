@@ -340,6 +340,14 @@ class SemanticEngine(BaseEngine):
         elif action == 'load_index':
             return await self._load_index(request['index_path'])
         
+        elif action == 'project_embeddings':
+            # NEW: Project embeddings to 2D for visualization
+            return await self._project_embeddings(
+                request['embeddings'],
+                request.get('method', 'tsne'),
+                request.get('perplexity', 30)
+            )
+        
         elif action == 'reorder_metadata_by_ivf':
             return await self._reorder_metadata_by_ivf_clusters()
         
@@ -1290,6 +1298,83 @@ class SemanticEngine(BaseEngine):
             "embeddings_available": hasattr(self, 'embedding_vectors') and len(self.embedding_vectors) > 0,
             "is_trained": self.index.is_trained if self.index else False
         }
+    
+    async def _project_embeddings(
+        self, 
+        embeddings: List[List[float]], 
+        method: str = 'tsne', 
+        perplexity: int = 30
+    ) -> Dict[str, Any]:
+        """
+        Project high-dimensional embeddings to 2D for visualization
+        
+        Args:
+            embeddings: List of embedding vectors (768-dim)
+            method: 'tsne' or 'umap'
+            perplexity: t-SNE perplexity parameter (default: 30)
+            
+        Returns:
+            Dict with 'projection' key containing 2D coordinates
+        """
+        try:
+            import numpy as np
+            
+            # Convert to numpy array
+            embeddings_array = np.array(embeddings, dtype=np.float32)
+            n_samples = len(embeddings_array)
+            
+            self.logger.info(f"Projecting {n_samples} embeddings using {method}")
+            
+            if method == 'tsne':
+                from sklearn.manifold import TSNE
+                
+                # Adjust perplexity if needed
+                effective_perplexity = min(perplexity, (n_samples - 1) // 3)
+                
+                projector = TSNE(
+                    n_components=2,
+                    perplexity=effective_perplexity,
+                    random_state=42,
+                    n_iter=1000,
+                    verbose=0
+                )
+                projection = projector.fit_transform(embeddings_array)
+                
+            elif method == 'umap':
+                try:
+                    import umap
+                    
+                    # Adjust n_neighbors if needed
+                    n_neighbors = min(15, n_samples - 1)
+                    
+                    projector = umap.UMAP(
+                        n_components=2,
+                        n_neighbors=n_neighbors,
+                        min_dist=0.1,
+                        random_state=42,
+                        verbose=False
+                    )
+                    projection = projector.fit_transform(embeddings_array)
+                except ImportError:
+                    self.logger.warning("UMAP not installed, falling back to t-SNE")
+                    return await self._project_embeddings(embeddings, 'tsne', perplexity)
+            else:
+                raise ValueError(f"Unknown projection method: {method}. Use 'tsne' or 'umap'.")
+            
+            # Convert to list for JSON serialization
+            projection_list = projection.tolist()
+            
+            self.logger.info(f"Projection complete: {len(projection_list)} points")
+            
+            return {
+                "projection": projection_list,
+                "method": method,
+                "n_samples": n_samples
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Projection failed: {str(e)}", exc_info=True)
+            raise
     
     def search_with_temperature(self, query_embedding: np.ndarray, k: int = 50, 
                                temperature: Optional[float] = None) -> Dict[str, Any]:

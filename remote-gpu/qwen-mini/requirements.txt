@@ -1,0 +1,30 @@
+# CuteCaption Qwen Mini-Server Dependencies
+# Install with: pip install -r requirements.txt
+
+# FastAPI web framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+python-multipart==0.0.6
+
+# System monitoring
+psutil==5.9.6
+gputil==1.4.0
+
+# WebSocket support
+websockets==12.0
+
+# Image processing
+pillow>=10.0.0
+
+# Qwen3-VL dependencies
+# Note: transformers must be installed from git for Qwen3-VL support
+# pip install git+https://github.com/huggingface/transformers
+qwen-vl-utils>=0.0.5
+
+# HuggingFace Hub
+huggingface-hub>=0.20.0
+
+# PyTorch (with CUDA) - install separately based on your CUDA version:
+# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+
