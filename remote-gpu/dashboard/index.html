@@ -15,37 +15,38 @@
         }
 
         :root {
-            /* CuteCaption Design System Colors */
+            /* CuteCaption Design System - Compact */
             --bg-primary: #0a0a0a;
-            --bg-secondary: #141414;
-            --bg-tertiary: #1a1a1a;
-            --bg-card: rgba(20, 20, 20, 0.8);
-            --border-primary: rgba(255, 255, 255, 0.08);
-            --border-accent: rgba(138, 43, 226, 0.3);
+            --bg-secondary: #111111;
+            --bg-tertiary: #161616;
+            --bg-card: rgba(18, 18, 18, 0.9);
+            --border-primary: rgba(255, 255, 255, 0.06);
+            --border-accent: rgba(138, 43, 226, 0.25);
             --text-primary: #ffffff;
             --text-secondary: rgba(255, 255, 255, 0.7);
-            --text-tertiary: rgba(255, 255, 255, 0.5);
+            --text-tertiary: rgba(255, 255, 255, 0.4);
             --accent-primary: #8a2be2;
-            --accent-glow: rgba(138, 43, 226, 0.4);
-            --success: #22c55e;
+            --accent-glow: rgba(138, 43, 226, 0.3);
+            --success: #10b981;
             --warning: #f59e0b;
             --error: #ef4444;
             --info: #3b82f6;
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background: var(--bg-primary);
             color: var(--text-primary);
-            line-height: 1.6;
+            font-size: 11px;
+            line-height: 1.5;
             overflow-x: hidden;
         }
 
-        /* Header */
+        /* Header - Compact */
         .header {
             background: var(--bg-secondary);
             border-bottom: 1px solid var(--border-primary);
-            padding: 20px 40px;
+            padding: 10px 24px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -54,50 +55,50 @@
         .header-left {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 10px;
         }
 
         .logo {
-            font-size: 20px;
+            font-size: 13px;
             font-weight: 600;
             letter-spacing: -0.02em;
         }
 
         .version {
-            font-size: 11px;
+            font-size: 9px;
             color: var(--text-tertiary);
             background: var(--bg-tertiary);
-            padding: 2px 8px;
-            border-radius: 4px;
+            padding: 2px 6px;
+            border-radius: 3px;
         }
 
         .status-badge {
             display: flex;
             align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 12px;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 10px;
             font-weight: 500;
             background: var(--bg-tertiary);
             border: 1px solid var(--border-primary);
         }
 
         .status-badge.online {
-            background: rgba(34, 197, 94, 0.1);
-            border-color: rgba(34, 197, 94, 0.3);
+            background: rgba(16, 185, 129, 0.1);
+            border-color: rgba(16, 185, 129, 0.2);
             color: var(--success);
         }
 
         .status-badge.offline {
             background: rgba(239, 68, 68, 0.1);
-            border-color: rgba(239, 68, 68, 0.3);
+            border-color: rgba(239, 68, 68, 0.2);
             color: var(--error);
         }
 
         .status-dot {
-            width: 6px;
-            height: 6px;
+            width: 5px;
+            height: 5px;
             border-radius: 50%;
             background: currentColor;
             animation: pulse 2s ease-in-out infinite;
@@ -105,63 +106,69 @@
 
         @keyframes pulse {
             0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+            50% { opacity: 0.4; }
         }
 
-        /* Main Container */
+        /* Container */
         .container {
-            max-width: 1400px;
+            max-width: 1200px;
             margin: 0 auto;
-            padding: 40px;
+            padding: 16px 24px;
         }
 
-        /* Grid Layout */
+        /* Grid */
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 20px;
-            margin-bottom: 20px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 12px;
         }
 
-        /* Card */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        /* Card - Compact */
         .card {
             background: var(--bg-card);
-            backdrop-filter: blur(20px);
             border: 1px solid var(--border-primary);
-            border-radius: 12px;
-            padding: 24px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 8px;
+            padding: 12px;
         }
 
         .card:hover {
             border-color: var(--border-accent);
-            box-shadow: 0 0 20px rgba(138, 43, 226, 0.1);
         }
 
         .card-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-primary);
         }
 
         .card-title {
-            font-size: 14px;
+            font-size: 9px;
             font-weight: 600;
-            color: var(--text-secondary);
+            color: var(--text-tertiary);
             text-transform: uppercase;
             letter-spacing: 0.05em;
         }
 
         .card-icon {
-            width: 20px;
-            height: 20px;
-            opacity: 0.5;
+            width: 14px;
+            height: 14px;
+            opacity: 0.4;
         }
 
-        /* Metric Display */
+        /* Metric - Compact */
         .metric {
-            margin-bottom: 20px;
+            margin-bottom: 10px;
         }
 
         .metric:last-child {
@@ -169,240 +176,297 @@
         }
 
         .metric-label {
-            font-size: 12px;
+            font-size: 9px;
             color: var(--text-tertiary);
-            margin-bottom: 8px;
+            margin-bottom: 3px;
         }
 
         .metric-value {
-            font-size: 28px;
-            font-weight: 700;
+            font-size: 18px;
+            font-weight: 600;
             letter-spacing: -0.02em;
             display: flex;
             align-items: baseline;
-            gap: 8px;
+            gap: 4px;
+        }
+
+        .metric-value.small {
+            font-size: 14px;
         }
 
         .metric-unit {
-            font-size: 14px;
-            font-weight: 500;
+            font-size: 10px;
+            font-weight: 400;
             color: var(--text-secondary);
         }
 
         .metric-bar {
             width: 100%;
-            height: 6px;
+            height: 4px;
             background: var(--bg-tertiary);
-            border-radius: 3px;
+            border-radius: 2px;
             overflow: hidden;
-            margin-top: 8px;
+            margin-top: 4px;
         }
 
         .metric-bar-fill {
             height: 100%;
             background: linear-gradient(90deg, var(--accent-primary), var(--info));
-            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-            border-radius: 3px;
+            transition: width 0.4s ease;
+            border-radius: 2px;
         }
 
         .metric-bar-fill.critical {
             background: linear-gradient(90deg, var(--error), var(--warning));
         }
 
-        /* Service List */
+        /* Service List - Compact */
         .service-list {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 6px;
         }
 
         .service-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px;
+            padding: 8px 10px;
             background: var(--bg-tertiary);
             border: 1px solid var(--border-primary);
-            border-radius: 8px;
-            transition: all 0.2s ease;
+            border-radius: 6px;
+            transition: all 0.15s ease;
         }
 
         .service-item:hover {
             border-color: var(--border-accent);
         }
 
-        .service-name {
-            font-size: 13px;
-            font-weight: 500;
+        .service-item.active {
+            border-color: var(--success);
+            background: rgba(16, 185, 129, 0.05);
         }
 
-        .service-status {
+        .service-info {
             display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 11px;
-            padding: 4px 10px;
-            border-radius: 4px;
+            flex-direction: column;
+            gap: 1px;
+        }
+
+        .service-name {
+            font-size: 10px;
             font-weight: 500;
         }
 
-        .service-status.loaded {
-            background: rgba(34, 197, 94, 0.1);
-            color: var(--success);
+        .service-desc {
+            font-size: 8px;
+            color: var(--text-tertiary);
         }
 
-        .service-status.standby {
-            background: rgba(251, 191, 36, 0.1);
-            color: var(--warning);
+        .service-meta {
+            font-size: 8px;
+            color: var(--text-tertiary);
+            display: flex;
+            gap: 8px;
         }
 
         .service-controls {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 6px;
         }
 
-        .btn-load {
-            padding: 4px 12px;
-            font-size: 11px;
-            font-weight: 600;
-            border: 1px solid var(--accent-primary);
+        .service-status {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 9px;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-weight: 500;
+        }
+
+        .service-status.loaded {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+
+        .service-status.standby {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-tertiary);
+        }
+
+        .service-status.loading {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+        }
+
+        .service-status.queued {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--info);
+        }
+
+        /* Buttons - Compact */
+        .btn-sm {
+            padding: 3px 8px;
+            font-size: 9px;
+            font-weight: 500;
+            border: 1px solid var(--border-primary);
             background: transparent;
-            color: var(--accent-primary);
-            border-radius: 4px;
+            color: var(--text-secondary);
+            border-radius: 3px;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.15s ease;
         }
 
-        .btn-load:hover {
+        .btn-sm:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: var(--border-accent);
+            color: var(--text-primary);
+        }
+
+        .btn-sm.primary {
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+        }
+
+        .btn-sm.primary:hover {
             background: var(--accent-primary);
             color: white;
         }
 
-        .btn-load:disabled {
-            opacity: 0.4;
+        .btn-sm.danger {
+            border-color: var(--error);
+            color: var(--error);
+        }
+
+        .btn-sm.danger:hover {
+            background: var(--error);
+            color: white;
+        }
+
+        .btn-sm:disabled {
+            opacity: 0.3;
             cursor: not-allowed;
         }
 
-        .btn-load.loading {
+        .btn-sm.loading {
             background: var(--warning);
             border-color: var(--warning);
             color: #000;
         }
 
-        /* Control Buttons */
-        .control-section {
-            margin-top: 24px;
-            padding-top: 24px;
-            border-top: 1px solid var(--border-primary);
+        /* Queue Section */
+        .queue-section {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-primary);
+            border-radius: 6px;
+            padding: 10px;
+            margin-top: 10px;
         }
 
-        .button-group {
+        .queue-header {
             display: flex;
-            gap: 12px;
-        }
-
-        .btn {
-            flex: 1;
-            padding: 12px 20px;
-            border: none;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
+            justify-content: space-between;
             align-items: center;
-            justify-content: center;
-            gap: 8px;
+            margin-bottom: 8px;
         }
 
-        .btn-primary {
-            background: var(--accent-primary);
-            color: white;
+        .queue-title {
+            font-size: 9px;
+            font-weight: 500;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
         }
 
-        .btn-primary:hover {
-            background: #7c24d4;
-            box-shadow: 0 0 20px var(--accent-glow);
-        }
-
-        .btn-secondary {
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-            border: 1px solid var(--border-primary);
-        }
-
-        .btn-secondary:hover {
-            border-color: var(--border-accent);
+        .queue-count {
+            font-size: 9px;
+            color: var(--text-tertiary);
             background: var(--bg-secondary);
+            padding: 2px 6px;
+            border-radius: 3px;
         }
 
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+        .queue-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 8px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            margin-bottom: 4px;
+            font-size: 9px;
         }
 
-        /* Connection Info */
+        .queue-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .queue-empty {
+            font-size: 9px;
+            color: var(--text-tertiary);
+            text-align: center;
+            padding: 8px;
+        }
+
+        /* Connection Info - Compact */
         .connection-info {
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-primary);
-            border-radius: 8px;
-            padding: 16px;
-            margin-top: 20px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
         }
 
         .connection-row {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-
-        .connection-row:last-child {
-            margin-bottom: 0;
+            flex-direction: column;
+            gap: 2px;
         }
 
         .connection-label {
-            font-size: 12px;
+            font-size: 8px;
             color: var(--text-tertiary);
+            text-transform: uppercase;
         }
 
         .connection-value {
-            font-size: 13px;
+            font-size: 10px;
             font-weight: 500;
-            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-family: 'SF Mono', 'Monaco', monospace;
             color: var(--text-primary);
+            word-break: break-all;
         }
 
-        /* Logs Section */
+        /* Logs - Compact */
         .logs {
             background: var(--bg-tertiary);
             border: 1px solid var(--border-primary);
-            border-radius: 8px;
-            padding: 16px;
-            max-height: 300px;
+            border-radius: 6px;
+            padding: 8px;
+            max-height: 180px;
             overflow-y: auto;
-            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
-            font-size: 11px;
-            line-height: 1.8;
+            font-family: 'SF Mono', 'Monaco', monospace;
+            font-size: 9px;
+            line-height: 1.6;
         }
 
         .log-entry {
-            margin-bottom: 8px;
+            margin-bottom: 4px;
             display: flex;
-            gap: 12px;
+            gap: 8px;
         }
 
         .log-time {
             color: var(--text-tertiary);
             flex-shrink: 0;
+            font-size: 8px;
         }
 
         .log-level {
             flex-shrink: 0;
-            width: 50px;
+            width: 40px;
             text-transform: uppercase;
+            font-size: 8px;
+            font-weight: 600;
         }
 
         .log-level.info { color: var(--info); }
@@ -412,11 +476,12 @@
 
         .log-message {
             color: var(--text-secondary);
+            font-size: 9px;
         }
 
         /* Scrollbar */
         ::-webkit-scrollbar {
-            width: 8px;
+            width: 6px;
         }
 
         ::-webkit-scrollbar-track {
@@ -424,15 +489,15 @@
         }
 
         ::-webkit-scrollbar-thumb {
-            background: rgba(138, 43, 226, 0.3);
-            border-radius: 4px;
+            background: rgba(138, 43, 226, 0.2);
+            border-radius: 3px;
         }
 
         ::-webkit-scrollbar-thumb:hover {
-            background: rgba(138, 43, 226, 0.5);
+            background: rgba(138, 43, 226, 0.4);
         }
 
-        /* Full Width Card */
+        /* Full Width */
         .card-full {
             grid-column: 1 / -1;
         }
@@ -440,9 +505,49 @@
         /* Footer */
         .footer {
             text-align: center;
-            padding: 40px;
+            padding: 16px;
             color: var(--text-tertiary);
-            font-size: 12px;
+            font-size: 9px;
+        }
+
+        /* VRAM Indicator */
+        .vram-indicator {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 8px;
+            color: var(--text-tertiary);
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid var(--border-primary);
+        }
+
+        .vram-bar {
+            flex: 1;
+            height: 3px;
+            background: var(--bg-secondary);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .vram-segment {
+            height: 100%;
+            float: left;
+            transition: width 0.3s ease;
+        }
+
+        .vram-segment.vlm { background: #8b5cf6; }
+        .vram-segment.semantic { background: #3b82f6; }
+        .vram-segment.pose { background: #10b981; }
+        .vram-segment.joycaption { background: #f59e0b; }
+        .vram-segment.qwen_caption { background: #ec4899; }
+        .vram-segment.free { background: var(--bg-tertiary); }
+
+        /* Memory estimates */
+        .mem-estimate {
+            font-size: 7px;
+            color: var(--text-tertiary);
+            margin-left: auto;
         }
     </style>
 </head>
@@ -451,17 +556,17 @@
     <div class="header">
         <div class="header-left">
             <div class="logo">CuteCaption Remote GPU</div>
-            <div class="version">v1.0.0</div>
+            <div class="version">v1.1.0</div>
         </div>
         <div class="status-badge" id="serverStatus">
             <div class="status-dot"></div>
-            <span>Checking...</span>
+            <span>Connecting...</span>
         </div>
     </div>
 
     <!-- Main Container -->
     <div class="container">
-        <!-- Top Grid: GPU, System, Services -->
+        <!-- Top Row: GPU, System, Active Service -->
         <div class="grid">
             <!-- GPU Card -->
             <div class="card">
@@ -473,10 +578,10 @@
                 </div>
                 <div class="metric">
                     <div class="metric-label">Model</div>
-                    <div class="metric-value" id="gpuName">--</div>
+                    <div class="metric-value small" id="gpuName">--</div>
                 </div>
                 <div class="metric">
-                    <div class="metric-label">VRAM Usage</div>
+                    <div class="metric-label">VRAM</div>
                     <div class="metric-value">
                         <span id="gpuMemUsed">--</span>
                         <span class="metric-unit">/ <span id="gpuMemTotal">--</span> GB</span>
@@ -486,7 +591,7 @@
                     </div>
                 </div>
                 <div class="metric">
-                    <div class="metric-label">GPU Utilization</div>
+                    <div class="metric-label">Utilization</div>
                     <div class="metric-value">
                         <span id="gpuUtil">--</span>
                         <span class="metric-unit">%</span>
@@ -506,7 +611,7 @@
                     </svg>
                 </div>
                 <div class="metric">
-                    <div class="metric-label">CPU Usage</div>
+                    <div class="metric-label">CPU</div>
                     <div class="metric-value">
                         <span id="cpuUtil">--</span>
                         <span class="metric-unit">%</span>
@@ -516,7 +621,7 @@
                     </div>
                 </div>
                 <div class="metric">
-                    <div class="metric-label">RAM Usage</div>
+                    <div class="metric-label">RAM</div>
                     <div class="metric-value">
                         <span id="ramUsed">--</span>
                         <span class="metric-unit">/ <span id="ramTotal">--</span> GB</span>
@@ -527,92 +632,174 @@
                 </div>
                 <div class="metric">
                     <div class="metric-label">Uptime</div>
-                    <div class="metric-value" id="uptime" style="font-size: 20px;">--</div>
+                    <div class="metric-value small" id="uptime">--</div>
                 </div>
             </div>
 
-            <!-- Services Card -->
+            <!-- Active Service Card -->
             <div class="card">
                 <div class="card-header">
-                    <div class="card-title">AI Services</div>
+                    <div class="card-title">Active Service</div>
                     <svg class="card-icon" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                     </svg>
                 </div>
+                <div class="metric">
+                    <div class="metric-label">Currently Loaded</div>
+                    <div class="metric-value small" id="activeService">None</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Requests Processed</div>
+                    <div class="metric-value" id="requestCount">0</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Avg Response Time</div>
+                    <div class="metric-value">
+                        <span id="avgResponseTime">--</span>
+                        <span class="metric-unit">ms</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Services Row -->
+        <div class="grid-2">
+            <!-- AI Intelligence Services -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">AI Intelligence</div>
+                    <span class="queue-count" id="aiServicesLoaded">0 loaded</span>
+                </div>
                 <div class="service-list">
-                    <div class="service-item">
-                        <span class="service-name">VLM (Qwen3-VL-8B)</span>
-                        <div class="service-controls">
-                            <span class="service-status" id="vlmStatus">
-                                <span class="status-dot"></span>
-                                Standby
+                    <div class="service-item" id="vlmItem">
+                        <div class="service-info">
+                            <span class="service-name">VLM (Qwen3-VL-8B)</span>
+                            <span class="service-meta">
+                                <span>~8GB VRAM</span>
+                                <span>Question Analysis</span>
                             </span>
-                            <button class="btn-load" id="vlmLoadBtn" onclick="loadService('vlm')">Load</button>
+                        </div>
+                        <div class="service-controls">
+                            <span class="service-status standby" id="vlmStatus">Standby</span>
+                            <button class="btn-sm primary" id="vlmLoadBtn" onclick="toggleService('vlm')">Load</button>
                         </div>
                     </div>
-                    <div class="service-item">
-                        <span class="service-name">Semantic (CLIP-SAE)</span>
-                        <div class="service-controls">
-                            <span class="service-status" id="semanticStatus">
-                                <span class="status-dot"></span>
-                                Standby
+                    <div class="service-item" id="semanticItem">
+                        <div class="service-info">
+                            <span class="service-name">Semantic (CLIP-SAE)</span>
+                            <span class="service-meta">
+                                <span>~2GB VRAM</span>
+                                <span>Image Search</span>
                             </span>
-                            <button class="btn-load" id="semanticLoadBtn" onclick="loadService('semantic')">Load</button>
+                        </div>
+                        <div class="service-controls">
+                            <span class="service-status standby" id="semanticStatus">Standby</span>
+                            <button class="btn-sm primary" id="semanticLoadBtn" onclick="toggleService('semantic')">Load</button>
                         </div>
                     </div>
-                    <div class="service-item">
-                        <span class="service-name">Pose (MediaPipe)</span>
-                        <div class="service-controls">
-                            <span class="service-status" id="poseStatus">
-                                <span class="status-dot"></span>
-                                Standby
+                    <div class="service-item" id="poseItem">
+                        <div class="service-info">
+                            <span class="service-name">Pose (MediaPipe)</span>
+                            <span class="service-meta">
+                                <span>~1GB VRAM</span>
+                                <span>Body Detection</span>
                             </span>
-                            <button class="btn-load" id="poseLoadBtn" onclick="loadService('pose')">Load</button>
                         </div>
+                        <div class="service-controls">
+                            <span class="service-status standby" id="poseStatus">Standby</span>
+                            <button class="btn-sm primary" id="poseLoadBtn" onclick="toggleService('pose')">Load</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Caption Services -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Caption Services</div>
+                    <span class="queue-count" id="captionServicesLoaded">0 loaded</span>
+                </div>
+                <div class="service-list">
+                    <div class="service-item" id="joycaptionItem">
+                        <div class="service-info">
+                            <span class="service-name">JoyCaption</span>
+                            <span class="service-meta">
+                                <span>~12GB VRAM</span>
+                                <span>llama-joycaption</span>
+                            </span>
+                        </div>
+                        <div class="service-controls">
+                            <span class="service-status standby" id="joycaptionStatus">Standby</span>
+                            <button class="btn-sm primary" id="joycaptionLoadBtn" onclick="toggleService('joycaption')">Load</button>
+                        </div>
+                    </div>
+                    <div class="service-item" id="qwenCaptionItem">
+                        <div class="service-info">
+                            <span class="service-name">Qwen Caption</span>
+                            <span class="service-meta">
+                                <span>~8GB VRAM</span>
+                                <span>Qwen3-VL Caption Mode</span>
+                            </span>
+                        </div>
+                        <div class="service-controls">
+                            <span class="service-status standby" id="qwenCaptionStatus">Standby</span>
+                            <button class="btn-sm primary" id="qwenCaptionLoadBtn" onclick="toggleService('qwen_caption')">Load</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Service Queue -->
+                <div class="queue-section" id="serviceQueue" style="display: none;">
+                    <div class="queue-header">
+                        <span class="queue-title">Pending Requests</span>
+                        <span class="queue-count" id="queueCount">0</span>
+                    </div>
+                    <div id="queueItems">
+                        <div class="queue-empty">No pending requests</div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Connection Info -->
-        <div class="card card-full">
-            <div class="card-header">
-                <div class="card-title">Connection Information</div>
-                <svg class="card-icon" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                </svg>
+        <!-- Connection & Logs Row -->
+        <div class="grid-2">
+            <!-- Connection Info -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Connection</div>
+                </div>
+                <div class="connection-info">
+                    <div class="connection-row">
+                        <span class="connection-label">Server</span>
+                        <span class="connection-value" id="serverAddress">--</span>
+                    </div>
+                    <div class="connection-row">
+                        <span class="connection-label">API</span>
+                        <span class="connection-value" id="apiEndpoint">--</span>
+                    </div>
+                    <div class="connection-row">
+                        <span class="connection-label">WebSocket</span>
+                        <span class="connection-value" id="wsEndpoint">--</span>
+                    </div>
+                    <div class="connection-row">
+                        <span class="connection-label">API Key</span>
+                        <span class="connection-value" id="apiKey">••••••••</span>
+                    </div>
+                </div>
             </div>
-            <div class="connection-info">
-                <div class="connection-row">
-                    <span class="connection-label">Server Address</span>
-                    <span class="connection-value" id="serverAddress">--</span>
-                </div>
-                <div class="connection-row">
-                    <span class="connection-label">API Endpoint</span>
-                    <span class="connection-value" id="apiEndpoint">--</span>
-                </div>
-                <div class="connection-row">
-                    <span class="connection-label">WebSocket</span>
-                    <span class="connection-value" id="wsEndpoint">--</span>
-                </div>
-                <div class="connection-row">
-                    <span class="connection-label">API Key</span>
-                    <span class="connection-value" id="apiKey">••••••••••••</span>
-                </div>
-            </div>
-        </div>
 
-        <!-- Activity Logs -->
-        <div class="card card-full">
-            <div class="card-header">
-                <div class="card-title">Activity Log</div>
-                <button class="btn btn-secondary" onclick="clearLogs()" style="padding: 6px 12px; font-size: 11px;">Clear</button>
-            </div>
-            <div class="logs" id="activityLog">
-                <div class="log-entry">
-                    <span class="log-time">00:00:00</span>
-                    <span class="log-level info">INFO</span>
-                    <span class="log-message">Server initialized. Waiting for status...</span>
+            <!-- Activity Logs -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Activity</div>
+                    <button class="btn-sm" onclick="clearLogs()">Clear</button>
+                </div>
+                <div class="logs" id="activityLog">
+                    <div class="log-entry">
+                        <span class="log-time">--:--:--</span>
+                        <span class="log-level info">INFO</span>
+                        <span class="log-message">Initializing dashboard...</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -620,7 +807,7 @@
 
     <!-- Footer -->
     <div class="footer">
-        CuteCaption Remote GPU Server • Made with care for seamless AI inference offloading
+        CuteCaption Remote GPU • Intelligent service switching enabled
     </div>
 
     <script>
@@ -628,41 +815,49 @@
         const API_BASE = window.location.origin;
         const WS_URL = `ws://${window.location.host}/ws`;
         
+        // Service memory estimates (GB) - Accurate for bf16/fp16
+        const SERVICE_VRAM = {
+            vlm: 16,           // Qwen3-VL-8B bf16
+            semantic: 2,       // CLIP-SAE
+            pose: 1,           // MediaPipe
+            joycaption: 12,    // llama-joycaption
+            qwen_caption: 16   // Qwen3-VL-8B bf16 (same as VLM)
+        };
+        
+        // State
         let ws = null;
         let statusInterval = null;
-        let servicesRunning = false;
+        let loadedServices = new Set();
+        let pendingQueue = [];
+        let totalVRAM = 24; // Default, updated from status
+        let requestCount = 0;
+        let totalResponseTime = 0;
+        let storedApiKey = localStorage.getItem('gpu_api_key') || '';
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
-            log('info', 'Dashboard loaded');
+            log('info', 'Dashboard initialized');
             updateConnectionInfo();
             startStatusPolling();
             connectWebSocket();
-            setupEventListeners();
         });
-
-        // Setup event listeners
-        function setupEventListeners() {
-            // Load buttons are set up inline with onclick
-        }
 
         // Update connection info
         function updateConnectionInfo() {
             const host = window.location.hostname;
-            const port = window.location.port;
+            const port = window.location.port || '8080';
             
             document.getElementById('serverAddress').textContent = `${host}:${port}`;
-            document.getElementById('apiEndpoint').textContent = `http://${host}:${port}/api/v1`;
-            document.getElementById('wsEndpoint').textContent = `ws://${host}:${port}/ws`;
+            document.getElementById('apiEndpoint').textContent = `/api/v1/*`;
+            document.getElementById('wsEndpoint').textContent = `/ws`;
         }
 
-        // Start status polling
+        // Status polling
         function startStatusPolling() {
-            fetchStatus(); // Immediate fetch
-            statusInterval = setInterval(fetchStatus, 2000); // Poll every 2s
+            fetchStatus();
+            statusInterval = setInterval(fetchStatus, 2000);
         }
 
-        // Fetch server status
         async function fetchStatus() {
             try {
                 const response = await fetch(`${API_BASE}/status`);
@@ -674,41 +869,38 @@
                 updateServiceStatus(data.services);
                 
             } catch (error) {
-                log('error', `Failed to fetch status: ${error.message}`);
                 markOffline();
             }
         }
 
-        // Update server status badge
         function updateServerStatus(data) {
             const badge = document.getElementById('serverStatus');
             
             if (data.ready) {
                 badge.className = 'status-badge online';
                 badge.querySelector('span').textContent = 'Online';
-                log('success', 'Server is online and ready');
             } else {
                 badge.className = 'status-badge offline';
                 badge.querySelector('span').textContent = 'Starting...';
             }
             
-            // Update uptime
             const uptimeSeconds = Math.floor(data.uptime_seconds || 0);
             document.getElementById('uptime').textContent = formatUptime(uptimeSeconds);
         }
 
-        // Update GPU info
         function updateGPUInfo(gpu) {
             if (!gpu || !gpu.available) {
-                document.getElementById('gpuName').textContent = 'No GPU Detected';
+                document.getElementById('gpuName').textContent = 'No GPU';
                 return;
             }
             
-            document.getElementById('gpuName').textContent = gpu.name || 'Unknown GPU';
+            document.getElementById('gpuName').textContent = gpu.name || 'Unknown';
             
             const memUsedGB = (gpu.memory_used_mb / 1024).toFixed(1);
             const memTotalGB = (gpu.memory_total_mb / 1024).toFixed(1);
             const memPercent = gpu.memory_utilization_percent || 0;
+            
+            totalVRAM = parseFloat(memTotalGB);
             
             document.getElementById('gpuMemUsed').textContent = memUsedGB;
             document.getElementById('gpuMemTotal').textContent = memTotalGB;
@@ -721,16 +913,15 @@
             }
             
             const gpuUtil = gpu.gpu_utilization_percent || 0;
-            document.getElementById('gpuUtil').textContent = gpuUtil;
+            document.getElementById('gpuUtil').textContent = Math.round(gpuUtil);
             document.getElementById('gpuUtilBar').style.width = `${gpuUtil}%`;
         }
 
-        // Update system info
         function updateSystemInfo(system) {
             if (!system) return;
             
             const cpuPercent = system.cpu_percent || 0;
-            document.getElementById('cpuUtil').textContent = cpuPercent.toFixed(1);
+            document.getElementById('cpuUtil').textContent = Math.round(cpuPercent);
             document.getElementById('cpuUtilBar').style.width = `${cpuPercent}%`;
             
             const ramUsed = system.memory_used_gb || 0;
@@ -748,66 +939,130 @@
             }
         }
 
-        // Update service status
         function updateServiceStatus(services) {
             if (!services) return;
             
-            updateSingleService('vlmStatus', services.vlm, 'vlm');
-            updateSingleService('semanticStatus', services.semantic, 'semantic');
-            updateSingleService('poseStatus', services.pose, 'pose');
+            loadedServices.clear();
+            let aiCount = 0;
+            let captionCount = 0;
+            let activeServiceName = 'None';
             
-            // Track if any services are running
-            const anyLoaded = services.vlm.loaded || services.semantic.loaded || services.pose.loaded;
-            servicesRunning = anyLoaded;
-        }
-
-        // Update single service status
-        function updateSingleService(elementId, serviceData, serviceName) {
-            const element = document.getElementById(elementId);
-            const loadBtn = document.getElementById(`${serviceName}LoadBtn`);
+            // Update each service
+            const serviceList = ['vlm', 'semantic', 'pose', 'joycaption', 'qwen_caption'];
             
-            if (serviceData.loaded) {
-                element.className = 'service-status loaded';
-                element.innerHTML = '<span class="status-dot"></span>Loaded';
-                if (loadBtn) {
-                    loadBtn.textContent = 'Loaded';
-                    loadBtn.disabled = true;
-                    loadBtn.classList.remove('loading');
-                }
-            } else {
-                element.className = 'service-status standby';
-                element.innerHTML = '<span class="status-dot"></span>Standby';
-                if (loadBtn && !loadBtn.classList.contains('loading')) {
-                    loadBtn.textContent = 'Load';
-                    loadBtn.disabled = false;
-                }
-            }
-        }
-
-        // Load a specific service
-        async function loadService(service) {
-            const loadBtn = document.getElementById(`${service}LoadBtn`);
-            
-            if (loadBtn) {
-                loadBtn.textContent = 'Loading...';
-                loadBtn.disabled = true;
-                loadBtn.classList.add('loading');
-            }
-            
-            log('info', `Loading ${service.toUpperCase()} service (this may take 30-120 seconds)...`);
-            
-            try {
-                const apiKey = prompt('Enter API Key:');
-                if (!apiKey) {
-                    log('warning', 'Load cancelled - no API key provided');
-                    if (loadBtn) {
-                        loadBtn.textContent = 'Load';
-                        loadBtn.disabled = false;
-                        loadBtn.classList.remove('loading');
+            serviceList.forEach(service => {
+                const data = services[service];
+                if (!data) return;
+                
+                const statusEl = document.getElementById(`${service === 'qwen_caption' ? 'qwenCaption' : service}Status`);
+                const btnEl = document.getElementById(`${service === 'qwen_caption' ? 'qwenCaption' : service}LoadBtn`);
+                const itemEl = document.getElementById(`${service === 'qwen_caption' ? 'qwenCaption' : service}Item`);
+                
+                if (data.loaded) {
+                    loadedServices.add(service);
+                    statusEl.className = 'service-status loaded';
+                    statusEl.textContent = 'Loaded';
+                    btnEl.textContent = 'Unload';
+                    btnEl.className = 'btn-sm danger';
+                    btnEl.classList.remove('loading');
+                    itemEl.classList.add('active');
+                    
+                    activeServiceName = getServiceDisplayName(service);
+                    
+                    if (['vlm', 'semantic', 'pose'].includes(service)) aiCount++;
+                    else captionCount++;
+                } else {
+                    statusEl.className = 'service-status standby';
+                    statusEl.textContent = 'Standby';
+                    if (!btnEl.classList.contains('loading')) {
+                        btnEl.textContent = 'Load';
+                        btnEl.className = 'btn-sm primary';
                     }
+                    itemEl.classList.remove('active');
+                }
+            });
+            
+            document.getElementById('aiServicesLoaded').textContent = `${aiCount} loaded`;
+            document.getElementById('captionServicesLoaded').textContent = `${captionCount} loaded`;
+            document.getElementById('activeService').textContent = loadedServices.size > 0 ? 
+                Array.from(loadedServices).map(getServiceDisplayName).join(', ') : 'None';
+            
+            // Update request stats
+            document.getElementById('requestCount').textContent = requestCount;
+            document.getElementById('avgResponseTime').textContent = requestCount > 0 ? 
+                Math.round(totalResponseTime / requestCount) : '--';
+        }
+
+        function getServiceDisplayName(service) {
+            const names = {
+                vlm: 'VLM',
+                semantic: 'Semantic',
+                pose: 'Pose',
+                joycaption: 'JoyCaption',
+                qwen_caption: 'Qwen Caption'
+            };
+            return names[service] || service;
+        }
+
+        // Toggle service (load/unload)
+        async function toggleService(service) {
+            const isLoaded = loadedServices.has(service);
+            
+            if (isLoaded) {
+                await unloadService(service);
+            } else {
+                await loadService(service);
+            }
+        }
+
+        async function loadService(service) {
+            const btnId = service === 'qwen_caption' ? 'qwenCaptionLoadBtn' : `${service}LoadBtn`;
+            const statusId = service === 'qwen_caption' ? 'qwenCaptionStatus' : `${service}Status`;
+            const loadBtn = document.getElementById(btnId);
+            const statusEl = document.getElementById(statusId);
+            
+            // Check VRAM availability
+            const requiredVRAM = SERVICE_VRAM[service] || 8;
+            const usedVRAM = Array.from(loadedServices).reduce((sum, s) => sum + (SERVICE_VRAM[s] || 0), 0);
+            const availableVRAM = totalVRAM - usedVRAM;
+            
+            if (requiredVRAM > availableVRAM) {
+                // Need to unload something first
+                const toUnload = suggestUnload(service, requiredVRAM - availableVRAM);
+                if (toUnload.length > 0) {
+                    const confirmMsg = `Loading ${getServiceDisplayName(service)} requires ${requiredVRAM}GB VRAM.\n\nUnload ${toUnload.map(getServiceDisplayName).join(', ')} to free up space?`;
+                    if (!confirm(confirmMsg)) {
+                        return;
+                    }
+                    
+                    // Unload services
+                    for (const s of toUnload) {
+                        await unloadService(s, false);
+                    }
+                }
+            }
+            
+            // Get API key
+            let apiKey = storedApiKey;
+            if (!apiKey) {
+                apiKey = prompt('Enter API Key:');
+                if (!apiKey) {
+                    log('warning', 'Load cancelled - no API key');
                     return;
                 }
-                
+                storedApiKey = apiKey;
+                localStorage.setItem('gpu_api_key', apiKey);
+            }
+            
+            loadBtn.textContent = 'Loading...';
+            loadBtn.classList.add('loading');
+            loadBtn.disabled = true;
+            statusEl.className = 'service-status loading';
+            statusEl.textContent = 'Loading...';
+            
+            log('info', `Loading ${getServiceDisplayName(service)}...`);
+            
+            try {
                 const response = await fetch(`${API_BASE}/api/v1/load?service=${service}`, {
                     method: 'POST',
                     headers: {
@@ -819,29 +1074,109 @@
                 const data = await response.json();
                 
                 if (response.ok && data.success) {
-                    log('success', `${service.toUpperCase()} loaded successfully!`);
+                    log('success', `${getServiceDisplayName(service)} loaded successfully`);
                 } else {
-                    throw new Error(data.detail || data.message || 'Unknown error');
+                    throw new Error(data.detail || data.message || 'Load failed');
                 }
                 
             } catch (error) {
                 log('error', `Failed to load ${service}: ${error.message}`);
-                if (loadBtn) {
-                    loadBtn.textContent = 'Load';
-                    loadBtn.disabled = false;
-                    loadBtn.classList.remove('loading');
-                }
+                loadBtn.textContent = 'Load';
+                loadBtn.className = 'btn-sm primary';
+                loadBtn.classList.remove('loading');
+                loadBtn.disabled = false;
+                statusEl.className = 'service-status standby';
+                statusEl.textContent = 'Standby';
             }
         }
 
-        // Mark server as offline
+        async function unloadService(service, showLog = true) {
+            const btnId = service === 'qwen_caption' ? 'qwenCaptionLoadBtn' : `${service}LoadBtn`;
+            const statusId = service === 'qwen_caption' ? 'qwenCaptionStatus' : `${service}Status`;
+            const loadBtn = document.getElementById(btnId);
+            const statusEl = document.getElementById(statusId);
+            
+            let apiKey = storedApiKey;
+            if (!apiKey) {
+                apiKey = prompt('Enter API Key:');
+                if (!apiKey) return;
+                storedApiKey = apiKey;
+                localStorage.setItem('gpu_api_key', apiKey);
+            }
+            
+            loadBtn.textContent = 'Unloading...';
+            loadBtn.disabled = true;
+            
+            if (showLog) log('info', `Unloading ${getServiceDisplayName(service)}...`);
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/unload?service=${service}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-API-Key': apiKey,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    if (showLog) log('success', `${getServiceDisplayName(service)} unloaded`);
+                    loadedServices.delete(service);
+                } else {
+                    throw new Error(data.detail || 'Unload failed');
+                }
+                
+            } catch (error) {
+                log('error', `Failed to unload ${service}: ${error.message}`);
+            }
+            
+            loadBtn.disabled = false;
+        }
+
+        // Suggest which services to unload to make room
+        function suggestUnload(targetService, neededVRAM) {
+            const toUnload = [];
+            let freedVRAM = 0;
+            
+            // Priority: unload same-category services first
+            const captionServices = ['joycaption', 'qwen_caption'];
+            const aiServices = ['vlm', 'semantic', 'pose'];
+            
+            const isCaptionService = captionServices.includes(targetService);
+            const primaryList = isCaptionService ? captionServices : aiServices;
+            const secondaryList = isCaptionService ? aiServices : captionServices;
+            
+            // Check primary list first
+            for (const service of primaryList) {
+                if (loadedServices.has(service) && service !== targetService) {
+                    toUnload.push(service);
+                    freedVRAM += SERVICE_VRAM[service] || 0;
+                    if (freedVRAM >= neededVRAM) break;
+                }
+            }
+            
+            // If still not enough, check secondary list
+            if (freedVRAM < neededVRAM) {
+                for (const service of secondaryList) {
+                    if (loadedServices.has(service)) {
+                        toUnload.push(service);
+                        freedVRAM += SERVICE_VRAM[service] || 0;
+                        if (freedVRAM >= neededVRAM) break;
+                    }
+                }
+            }
+            
+            return toUnload;
+        }
+
         function markOffline() {
             const badge = document.getElementById('serverStatus');
             badge.className = 'status-badge offline';
             badge.querySelector('span').textContent = 'Offline';
         }
 
-        // WebSocket connection
+        // WebSocket
         function connectWebSocket() {
             try {
                 ws = new WebSocket(WS_URL);
@@ -851,21 +1186,26 @@
                 };
                 
                 ws.onmessage = (event) => {
-                    const data = JSON.parse(event.data);
-                    log('info', `WS: ${JSON.stringify(data)}`);
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data.type === 'request_complete') {
+                            requestCount++;
+                            totalResponseTime += data.duration_ms || 0;
+                        }
+                    } catch (e) {}
                 };
                 
-                ws.onerror = (error) => {
+                ws.onerror = () => {
                     log('error', 'WebSocket error');
                 };
                 
                 ws.onclose = () => {
-                    log('warning', 'WebSocket disconnected. Reconnecting...');
+                    log('warning', 'WebSocket disconnected, reconnecting...');
                     setTimeout(connectWebSocket, 3000);
                 };
                 
             } catch (error) {
-                log('error', `WebSocket connection failed: ${error.message}`);
+                log('error', `WebSocket failed: ${error.message}`);
             }
         }
 
@@ -879,15 +1219,14 @@
             
             entry.innerHTML = `
                 <span class="log-time">${time}</span>
-                <span class="log-level ${level}">${level.toUpperCase()}</span>
+                <span class="log-level ${level}">${level.toUpperCase().substring(0, 4)}</span>
                 <span class="log-message">${message}</span>
             `;
             
             logContainer.appendChild(entry);
             logContainer.scrollTop = logContainer.scrollHeight;
             
-            // Keep only last 100 entries
-            while (logContainer.children.length > 100) {
+            while (logContainer.children.length > 50) {
                 logContainer.removeChild(logContainer.firstChild);
             }
         }
@@ -897,25 +1236,18 @@
             log('info', 'Logs cleared');
         }
 
-        // Format uptime
         function formatUptime(seconds) {
-            const days = Math.floor(seconds / 86400);
-            const hours = Math.floor((seconds % 86400) / 3600);
-            const minutes = Math.floor((seconds % 3600) / 60);
-            const secs = seconds % 60;
+            const d = Math.floor(seconds / 86400);
+            const h = Math.floor((seconds % 86400) / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = seconds % 60;
             
-            if (days > 0) {
-                return `${days}d ${hours}h ${minutes}m`;
-            } else if (hours > 0) {
-                return `${hours}h ${minutes}m ${secs}s`;
-            } else if (minutes > 0) {
-                return `${minutes}m ${secs}s`;
-            } else {
-                return `${secs}s`;
-            }
+            if (d > 0) return `${d}d ${h}h`;
+            if (h > 0) return `${h}h ${m}m`;
+            if (m > 0) return `${m}m ${s}s`;
+            return `${s}s`;
         }
 
-        // Cleanup on page unload
         window.addEventListener('beforeunload', () => {
             if (statusInterval) clearInterval(statusInterval);
             if (ws) ws.close();
@@ -923,4 +1255,3 @@
     </script>
 </body>
 </html>
-

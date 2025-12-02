@@ -25,6 +25,9 @@ import os
 import sys
 import asyncio
 import logging
+import base64
+import io
+import tempfile
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 import time
@@ -36,6 +39,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse
 from pydantic import BaseModel, Field
 import uvicorn
+from PIL import Image
 
 # Configure logging
 logging.basicConfig(
@@ -77,16 +81,20 @@ app.add_middleware(
 # ============================================================================
 
 class ServiceRegistry:
-    """Manages inference services (VLM, Semantic, Pose)"""
+    """Manages inference services (VLM, Semantic, Pose, JoyCaption, Qwen Caption)"""
     
     def __init__(self):
         self.vlm_service = None
         self.semantic_service = None
         self.pose_service = None
+        self.joycaption_service = None
+        self.qwen_caption_service = None
         self.services_initialized = {
             'vlm': False,
             'semantic': False,
-            'pose': False
+            'pose': False,
+            'joycaption': False,
+            'qwen_caption': False
         }
         
     async def get_vlm_service(self):
@@ -154,6 +162,47 @@ class ServiceRegistry:
             
         return self.pose_service
     
+    async def get_joycaption_service(self):
+        """Lazy load JoyCaption service"""
+        if self.joycaption_service is None:
+            logger.info("[ServiceRegistry] Loading JoyCaption service...")
+            start = time.time()
+            
+            python_path = Path(__file__).parent.parent / 'python' / 'intelligence'
+            sys.path.insert(0, str(python_path))
+            logger.info(f"[ServiceRegistry] Python intelligence path: {python_path}")
+            
+            from joycaption_engine import JoyCaptionEngine
+            self.joycaption_service = JoyCaptionEngine()
+            await self.joycaption_service.initialize()
+            
+            elapsed = time.time() - start
+            logger.info(f"[ServiceRegistry] JoyCaption service loaded in {elapsed:.2f}s")
+            self.services_initialized['joycaption'] = True
+            
+        return self.joycaption_service
+    
+    async def get_qwen_caption_service(self):
+        """Lazy load Qwen Caption service (reuses VLM engine with caption mode)"""
+        if self.qwen_caption_service is None:
+            logger.info("[ServiceRegistry] Loading Qwen Caption service...")
+            start = time.time()
+            
+            # Qwen Caption reuses the VLM service but in caption mode
+            # If VLM is already loaded, just reference it
+            if self.vlm_service is not None:
+                self.qwen_caption_service = self.vlm_service
+                logger.info("[ServiceRegistry] Qwen Caption using existing VLM service")
+            else:
+                # Load VLM if not already loaded
+                self.qwen_caption_service = await self.get_vlm_service()
+            
+            elapsed = time.time() - start
+            logger.info(f"[ServiceRegistry] Qwen Caption service loaded in {elapsed:.2f}s")
+            self.services_initialized['qwen_caption'] = True
+            
+        return self.qwen_caption_service
+    
     def get_status(self) -> Dict[str, Any]:
         """Get current status of all services"""
         return {
@@ -168,6 +217,14 @@ class ServiceRegistry:
             'pose': {
                 'loaded': self.services_initialized['pose'],
                 'ready': self.pose_service is not None
+            },
+            'joycaption': {
+                'loaded': self.services_initialized['joycaption'],
+                'ready': self.joycaption_service is not None
+            },
+            'qwen_caption': {
+                'loaded': self.services_initialized['qwen_caption'],
+                'ready': self.qwen_caption_service is not None
             }
         }
 
@@ -221,6 +278,38 @@ class SemanticEmbedRequest(BaseModel):
 
 class PoseDetectRequest(BaseModel):
     image_path: str = Field(..., description="Absolute path to image file")
+
+# JoyCaption Request Models
+class JoyCaptionRequest(BaseModel):
+    image_path: str = Field(..., description="Absolute path to image file")
+    prompt: Optional[str] = Field(None, description="Custom caption prompt")
+    temperature: float = Field(0.7, description="Temperature for generation")
+    top_p: float = Field(0.9, description="Top-p sampling")
+    max_tokens: int = Field(512, description="Max tokens to generate")
+
+class JoyCaptionBatchRequest(BaseModel):
+    image_paths: List[str] = Field(..., description="List of image paths to caption")
+    prompt: Optional[str] = Field(None, description="Custom caption prompt")
+    temperature: float = Field(0.7, description="Temperature for generation")
+    top_p: float = Field(0.9, description="Top-p sampling")
+    max_tokens: int = Field(512, description="Max tokens to generate")
+
+# Qwen Caption Request Models
+class QwenCaptionRequest(BaseModel):
+    image_path: str = Field(..., description="Absolute path to image file")
+    prompt: Optional[str] = Field(None, description="Custom caption prompt")
+    max_resolution: int = Field(1024, description="Max resolution for inference")
+    temperature: float = Field(0.7, description="Temperature for generation")
+    max_tokens: int = Field(2048, description="Max tokens to generate")
+
+class QwenVideoCaptionRequest(BaseModel):
+    video_path: str = Field(..., description="Absolute path to video file")
+    prompt: Optional[str] = Field(None, description="Custom caption prompt")
+    max_frames: int = Field(64, description="Max frames to extract")
+    fps: int = Field(6, description="Frames per second for extraction")
+    max_resolution: int = Field(1024, description="Max resolution for inference")
+    temperature: float = Field(0.7, description="Temperature for generation")
+    max_tokens: int = Field(2048, description="Max tokens to generate")
 
 # ============================================================================
 # SYSTEM INFO HELPERS
@@ -322,7 +411,7 @@ async def get_status():
 async def load_model(service: str = "vlm"):
     """
     Explicitly load a model into VRAM.
-    Services: vlm, semantic, pose
+    Services: vlm, semantic, pose, joycaption, qwen_caption
     """
     try:
         if service == "vlm":
@@ -337,8 +426,16 @@ async def load_model(service: str = "vlm"):
             logger.info("[API] Loading Pose service...")
             await registry.get_pose_service()
             return {"success": True, "service": "pose", "message": "Pose model loaded successfully"}
+        elif service == "joycaption":
+            logger.info("[API] Loading JoyCaption service...")
+            await registry.get_joycaption_service()
+            return {"success": True, "service": "joycaption", "message": "JoyCaption model loaded successfully"}
+        elif service == "qwen_caption":
+            logger.info("[API] Loading Qwen Caption service...")
+            await registry.get_qwen_caption_service()
+            return {"success": True, "service": "qwen_caption", "message": "Qwen Caption model loaded successfully"}
         else:
-            raise HTTPException(status_code=400, detail=f"Unknown service: {service}. Use: vlm, semantic, pose")
+            raise HTTPException(status_code=400, detail=f"Unknown service: {service}. Use: vlm, semantic, pose, joycaption, qwen_caption")
     except Exception as e:
         logger.error(f"Failed to load {service}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -371,6 +468,20 @@ async def unload_model(service: str = "vlm"):
                 logger.info("[API] Pose service unloaded")
                 return {"success": True, "service": "pose", "message": "Pose model unloaded"}
             return {"success": True, "service": "pose", "message": "Pose was not loaded"}
+        elif service == "joycaption":
+            if registry.joycaption_service:
+                registry.joycaption_service = None
+                registry.services_initialized['joycaption'] = False
+                logger.info("[API] JoyCaption service unloaded")
+                return {"success": True, "service": "joycaption", "message": "JoyCaption model unloaded"}
+            return {"success": True, "service": "joycaption", "message": "JoyCaption was not loaded"}
+        elif service == "qwen_caption":
+            if registry.qwen_caption_service:
+                registry.qwen_caption_service = None
+                registry.services_initialized['qwen_caption'] = False
+                logger.info("[API] Qwen Caption service unloaded")
+                return {"success": True, "service": "qwen_caption", "message": "Qwen Caption model unloaded"}
+            return {"success": True, "service": "qwen_caption", "message": "Qwen Caption was not loaded"}
         else:
             raise HTTPException(status_code=400, detail=f"Unknown service: {service}")
     except Exception as e:
@@ -508,6 +619,30 @@ async def semantic_embed(request: SemanticEmbedRequest):
         logger.error(f"Semantic embed error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+class SemanticProjectRequest(BaseModel):
+    embeddings: List[List[float]] = Field(..., description="List of embedding vectors")
+    method: str = Field('tsne', description="Projection method: tsne or umap")
+    perplexity: int = Field(30, description="t-SNE perplexity parameter")
+
+@app.post("/api/v1/semantic/project", dependencies=[Depends(verify_api_key)])
+async def semantic_project(request: SemanticProjectRequest):
+    """Project embeddings to 2D for visualization (t-SNE/UMAP)"""
+    try:
+        service = await registry.get_semantic_service()
+        
+        result = await service.process({
+            'action': 'project_embeddings',
+            'embeddings': request.embeddings,
+            'method': request.method,
+            'perplexity': request.perplexity
+        })
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Semantic project error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # ============================================================================
 # POSE ENDPOINT
 # ============================================================================
@@ -527,6 +662,117 @@ async def pose_detect(request: PoseDetectRequest):
         
     except Exception as e:
         logger.error(f"Pose detect error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============================================================================
+# JOYCAPTION ENDPOINTS
+# ============================================================================
+
+@app.post("/api/v1/joycaption/caption", dependencies=[Depends(verify_api_key)])
+async def joycaption_caption(request: JoyCaptionRequest):
+    """Generate caption using JoyCaption model"""
+    try:
+        service = await registry.get_joycaption_service()
+        
+        result = await service.process({
+            'action': 'caption_image',
+            'image_path': request.image_path,
+            'prompt': request.prompt,
+            'temperature': request.temperature,
+            'top_p': request.top_p,
+            'max_tokens': request.max_tokens
+        })
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"JoyCaption caption error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/v1/joycaption/batch", dependencies=[Depends(verify_api_key)])
+async def joycaption_batch(request: JoyCaptionBatchRequest):
+    """Batch caption using JoyCaption model"""
+    try:
+        service = await registry.get_joycaption_service()
+        
+        results = []
+        for image_path in request.image_paths:
+            result = await service.process({
+                'action': 'caption_image',
+                'image_path': image_path,
+                'prompt': request.prompt,
+                'temperature': request.temperature,
+                'top_p': request.top_p,
+                'max_tokens': request.max_tokens
+            })
+            results.append({
+                'image_path': image_path,
+                'caption': result.get('caption', ''),
+                'success': result.get('success', True)
+            })
+        
+        return {
+            'success': True,
+            'results': results,
+            'total': len(results)
+        }
+        
+    except Exception as e:
+        logger.error(f"JoyCaption batch error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============================================================================
+# QWEN CAPTION ENDPOINTS
+# ============================================================================
+
+@app.post("/api/v1/qwen-caption/caption", dependencies=[Depends(verify_api_key)])
+async def qwen_caption(request: QwenCaptionRequest):
+    """Generate caption using Qwen3-VL model"""
+    try:
+        service = await registry.get_qwen_caption_service()
+        
+        # Use VLM service with caption-specific prompt
+        caption_prompt = request.prompt or "Describe this image in detail."
+        
+        result = await service.process({
+            'action': 'caption_image',
+            'image_path': request.image_path,
+            'prompt': caption_prompt,
+            'max_resolution': request.max_resolution,
+            'temperature': request.temperature,
+            'max_tokens': request.max_tokens
+        })
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Qwen caption error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/v1/qwen-caption/video", dependencies=[Depends(verify_api_key)])
+async def qwen_caption_video(request: QwenVideoCaptionRequest):
+    """Generate video caption using Qwen3-VL model"""
+    try:
+        service = await registry.get_qwen_caption_service()
+        
+        # Use VLM service with video caption mode
+        caption_prompt = request.prompt or "Describe what happens in this video in detail."
+        
+        result = await service.process({
+            'action': 'caption_video',
+            'video_path': request.video_path,
+            'prompt': caption_prompt,
+            'max_frames': request.max_frames,
+            'fps': request.fps,
+            'max_resolution': request.max_resolution,
+            'temperature': request.temperature,
+            'max_tokens': request.max_tokens
+        })
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Qwen video caption error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # ============================================================================

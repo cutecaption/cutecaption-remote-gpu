@@ -41,3 +41,7 @@ huggingface-hub
 
 # System utilities
 psutil
+
+# Dimensionality reduction for embedding visualization
+scikit-learn
+umap-learn
