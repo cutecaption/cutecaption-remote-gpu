@@ -310,6 +310,69 @@ async def get_status():
     }
 
 # ============================================================================
+# MODEL LOADING ENDPOINTS
+# ============================================================================
+
+@app.post("/api/v1/load", dependencies=[Depends(verify_api_key)])
+async def load_model(service: str = "vlm"):
+    """
+    Explicitly load a model into VRAM.
+    Services: vlm, semantic, pose
+    """
+    try:
+        if service == "vlm":
+            logger.info("[API] Loading VLM service...")
+            await registry.get_vlm_service()
+            return {"success": True, "service": "vlm", "message": "VLM model loaded successfully"}
+        elif service == "semantic":
+            logger.info("[API] Loading Semantic service...")
+            await registry.get_semantic_service()
+            return {"success": True, "service": "semantic", "message": "Semantic model loaded successfully"}
+        elif service == "pose":
+            logger.info("[API] Loading Pose service...")
+            await registry.get_pose_service()
+            return {"success": True, "service": "pose", "message": "Pose model loaded successfully"}
+        else:
+            raise HTTPException(status_code=400, detail=f"Unknown service: {service}. Use: vlm, semantic, pose")
+    except Exception as e:
+        logger.error(f"Failed to load {service}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/v1/unload", dependencies=[Depends(verify_api_key)])
+async def unload_model(service: str = "vlm"):
+    """
+    Unload a model from VRAM.
+    Note: Full unload requires server restart for complete memory release.
+    """
+    try:
+        if service == "vlm":
+            if registry.vlm_service:
+                registry.vlm_service = None
+                registry.services_initialized['vlm'] = False
+                logger.info("[API] VLM service unloaded")
+                return {"success": True, "service": "vlm", "message": "VLM model unloaded"}
+            return {"success": True, "service": "vlm", "message": "VLM was not loaded"}
+        elif service == "semantic":
+            if registry.semantic_service:
+                registry.semantic_service = None
+                registry.services_initialized['semantic'] = False
+                logger.info("[API] Semantic service unloaded")
+                return {"success": True, "service": "semantic", "message": "Semantic model unloaded"}
+            return {"success": True, "service": "semantic", "message": "Semantic was not loaded"}
+        elif service == "pose":
+            if registry.pose_service:
+                registry.pose_service = None
+                registry.services_initialized['pose'] = False
+                logger.info("[API] Pose service unloaded")
+                return {"success": True, "service": "pose", "message": "Pose model unloaded"}
+            return {"success": True, "service": "pose", "message": "Pose was not loaded"}
+        else:
+            raise HTTPException(status_code=400, detail=f"Unknown service: {service}")
+    except Exception as e:
+        logger.error(f"Failed to unload {service}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============================================================================
 # VLM ENDPOINTS
 # ============================================================================
 

@@ -256,6 +256,40 @@
             color: var(--warning);
         }
 
+        .service-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-load {
+            padding: 4px 12px;
+            font-size: 11px;
+            font-weight: 600;
+            border: 1px solid var(--accent-primary);
+            background: transparent;
+            color: var(--accent-primary);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-load:hover {
+            background: var(--accent-primary);
+            color: white;
+        }
+
+        .btn-load:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .btn-load.loading {
+            background: var(--warning);
+            border-color: var(--warning);
+            color: #000;
+        }
+
         /* Control Buttons */
         .control-section {
             margin-top: 24px;
@@ -507,41 +541,34 @@
                 </div>
                 <div class="service-list">
                     <div class="service-item">
-                        <span class="service-name">VLM (Qwen3-VL)</span>
-                        <span class="service-status" id="vlmStatus">
-                            <span class="status-dot"></span>
-                            Standby
-                        </span>
+                        <span class="service-name">VLM (Qwen3-VL-8B)</span>
+                        <div class="service-controls">
+                            <span class="service-status" id="vlmStatus">
+                                <span class="status-dot"></span>
+                                Standby
+                            </span>
+                            <button class="btn-load" id="vlmLoadBtn" onclick="loadService('vlm')">Load</button>
+                        </div>
                     </div>
                     <div class="service-item">
                         <span class="service-name">Semantic (CLIP-SAE)</span>
-                        <span class="service-status" id="semanticStatus">
-                            <span class="status-dot"></span>
-                            Standby
-                        </span>
+                        <div class="service-controls">
+                            <span class="service-status" id="semanticStatus">
+                                <span class="status-dot"></span>
+                                Standby
+                            </span>
+                            <button class="btn-load" id="semanticLoadBtn" onclick="loadService('semantic')">Load</button>
+                        </div>
                     </div>
                     <div class="service-item">
                         <span class="service-name">Pose (MediaPipe)</span>
-                        <span class="service-status" id="poseStatus">
-                            <span class="status-dot"></span>
-                            Standby
-                        </span>
-                    </div>
-                </div>
-                <div class="control-section">
-                    <div class="button-group">
-                        <button class="btn btn-primary" id="startBtn">
-                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M8 5v14l11-7z"/>
-                            </svg>
-                            Start Services
-                        </button>
-                        <button class="btn btn-secondary" id="stopBtn" disabled>
-                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M6 6h12v12H6z"/>
-                            </svg>
-                            Stop Services
-                        </button>
+                        <div class="service-controls">
+                            <span class="service-status" id="poseStatus">
+                                <span class="status-dot"></span>
+                                Standby
+                            </span>
+                            <button class="btn-load" id="poseLoadBtn" onclick="loadService('pose')">Load</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -616,8 +643,7 @@
 
         // Setup event listeners
         function setupEventListeners() {
-            document.getElementById('startBtn').addEventListener('click', startServices);
-            document.getElementById('stopBtn').addEventListener('click', stopServices);
+            // Load buttons are set up inline with onclick
         }
 
         // Update connection info
@@ -726,58 +752,86 @@
         function updateServiceStatus(services) {
             if (!services) return;
             
-            updateSingleService('vlmStatus', services.vlm);
-            updateSingleService('semanticStatus', services.semantic);
-            updateSingleService('poseStatus', services.pose);
+            updateSingleService('vlmStatus', services.vlm, 'vlm');
+            updateSingleService('semanticStatus', services.semantic, 'semantic');
+            updateSingleService('poseStatus', services.pose, 'pose');
             
-            // Update control buttons
+            // Track if any services are running
             const anyLoaded = services.vlm.loaded || services.semantic.loaded || services.pose.loaded;
             servicesRunning = anyLoaded;
-            
-            document.getElementById('startBtn').disabled = anyLoaded;
-            document.getElementById('stopBtn').disabled = !anyLoaded;
         }
 
         // Update single service status
-        function updateSingleService(elementId, serviceData) {
+        function updateSingleService(elementId, serviceData, serviceName) {
             const element = document.getElementById(elementId);
+            const loadBtn = document.getElementById(`${serviceName}LoadBtn`);
             
             if (serviceData.loaded) {
                 element.className = 'service-status loaded';
                 element.innerHTML = '<span class="status-dot"></span>Loaded';
+                if (loadBtn) {
+                    loadBtn.textContent = 'Loaded';
+                    loadBtn.disabled = true;
+                    loadBtn.classList.remove('loading');
+                }
             } else {
                 element.className = 'service-status standby';
                 element.innerHTML = '<span class="status-dot"></span>Standby';
+                if (loadBtn && !loadBtn.classList.contains('loading')) {
+                    loadBtn.textContent = 'Load';
+                    loadBtn.disabled = false;
+                }
             }
         }
 
-        // Start services (preload VLM)
-        async function startServices() {
-            log('info', 'Starting services...');
+        // Load a specific service
+        async function loadService(service) {
+            const loadBtn = document.getElementById(`${service}LoadBtn`);
+            
+            if (loadBtn) {
+                loadBtn.textContent = 'Loading...';
+                loadBtn.disabled = true;
+                loadBtn.classList.add('loading');
+            }
+            
+            log('info', `Loading ${service.toUpperCase()} service (this may take 30-120 seconds)...`);
             
             try {
-                // Trigger VLM load by making a status request (it will lazy load on first use)
-                log('info', 'Preloading VLM service (this may take 30-60 seconds)...');
+                const apiKey = prompt('Enter API Key:');
+                if (!apiKey) {
+                    log('warning', 'Load cancelled - no API key provided');
+                    if (loadBtn) {
+                        loadBtn.textContent = 'Load';
+                        loadBtn.disabled = false;
+                        loadBtn.classList.remove('loading');
+                    }
+                    return;
+                }
                 
-                // For now, services load on first request
-                // In production, you could add a /api/v1/preload endpoint
+                const response = await fetch(`${API_BASE}/api/v1/load?service=${service}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-API-Key': apiKey,
+                        'Content-Type': 'application/json'
+                    }
+                });
                 
-                log('success', 'Services are ready. They will load on first request.');
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    log('success', `${service.toUpperCase()} loaded successfully!`);
+                } else {
+                    throw new Error(data.detail || data.message || 'Unknown error');
+                }
                 
             } catch (error) {
-                log('error', `Failed to start services: ${error.message}`);
+                log('error', `Failed to load ${service}: ${error.message}`);
+                if (loadBtn) {
+                    loadBtn.textContent = 'Load';
+                    loadBtn.disabled = false;
+                    loadBtn.classList.remove('loading');
+                }
             }
-        }
-
-        // Stop services
-        async function stopServices() {
-            log('info', 'Stopping services...');
-            
-            // Note: Services don't unload until server restart
-            // This is intentional for performance
-            
-            log('warning', 'Services remain in memory for fast response times');
-            log('info', 'Restart server to fully unload models');
         }
 
         // Mark server as offline
