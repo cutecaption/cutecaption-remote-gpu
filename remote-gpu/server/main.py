@@ -249,17 +249,61 @@ async def verify_api_key(x_api_key: str = Header(None)):
 # REQUEST/RESPONSE MODELS
 # ============================================================================
 
+# Helper function to handle both image_path and image_data (base64)
+def decode_image_data(image_data: str) -> str:
+    """
+    Decode base64 image data and save to temp file.
+    Returns path to temp file.
+    """
+    import tempfile
+    import base64
+    
+    # Handle data URL format (data:image/jpeg;base64,...)
+    if image_data.startswith('data:'):
+        # Extract base64 part after comma
+        image_data = image_data.split(',', 1)[1]
+    
+    # Decode base64
+    image_bytes = base64.b64decode(image_data)
+    
+    # Detect image format from magic bytes
+    if image_bytes[:8] == b'\x89PNG\r\n\x1a\n':
+        ext = '.png'
+    elif image_bytes[:2] == b'\xff\xd8':
+        ext = '.jpg'
+    elif image_bytes[:6] in (b'GIF87a', b'GIF89a'):
+        ext = '.gif'
+    elif image_bytes[:4] == b'RIFF' and image_bytes[8:12] == b'WEBP':
+        ext = '.webp'
+    else:
+        ext = '.jpg'  # Default to JPEG
+    
+    # Save to temp file
+    fd, temp_path = tempfile.mkstemp(suffix=ext, prefix='cutecaption_')
+    try:
+        with os.fdopen(fd, 'wb') as f:
+            f.write(image_bytes)
+    except:
+        os.close(fd)
+        raise
+    
+    return temp_path
+
 class VLMClassifyRequest(BaseModel):
-    image_path: str = Field(..., description="Absolute path to image file")
+    image_path: Optional[str] = Field(None, description="Absolute path to image file (server-side)")
+    image_data: Optional[str] = Field(None, description="Base64 encoded image data (for remote clients)")
     max_resolution: int = Field(1024, description="Max resolution for inference")
 
 class VLMCaptionRequest(BaseModel):
-    image_path: str = Field(..., description="Absolute path to image file")
+    image_path: Optional[str] = Field(None, description="Absolute path to image file (server-side)")
+    image_data: Optional[str] = Field(None, description="Base64 encoded image data (for remote clients)")
     max_resolution: int = Field(1024, description="Max resolution for inference")
     prompt: Optional[str] = Field(None, description="Optional caption prompt")
+    style: Optional[str] = Field(None, description="Caption style (for compatibility)")
 
 class VLMVerifyRequest(BaseModel):
-    candidates: List[str] = Field(..., description="List of image paths to verify")
+    candidates: Optional[List[str]] = Field(None, description="List of image paths to verify")
+    candidates_data: Optional[List[Dict[str, Any]]] = Field(None, description="List of {id, image_data} for remote clients")
     query: str = Field(..., description="Query to verify against")
     max_resolution: int = Field(1024, description="Max resolution for inference")
 
@@ -267,8 +311,26 @@ class VLMSynthesizeRequest(BaseModel):
     question: str = Field(..., description="User's question")
     evidence: Dict[str, Any] = Field(..., description="Evidence from search/analysis")
     persona: str = Field('professional', description="Response persona")
-    representative_images: Optional[List[str]] = Field(None, description="Sample images")
+    representative_images: Optional[List[str]] = Field(None, description="Sample image paths")
+    representative_images_data: Optional[List[str]] = Field(None, description="Sample images as base64")
     confidence_metrics: Optional[Dict[str, Any]] = Field(None, description="Confidence data")
+
+# VQA Request (Visual Question Answering)
+class VLMVQARequest(BaseModel):
+    image_path: Optional[str] = Field(None, description="Absolute path to image file")
+    image_data: Optional[str] = Field(None, description="Base64 encoded image data")
+    question: str = Field(..., description="Question about the image")
+    max_resolution: int = Field(1024, description="Max resolution for inference")
+
+# Question Analysis Request
+class VLMAnalyzeQuestionRequest(BaseModel):
+    question: str = Field(..., description="User's question to analyze")
+    dataset_context: Optional[Dict[str, Any]] = Field(None, description="Dataset metadata context")
+
+# Batch Classification Request
+class VLMClassifyBatchRequest(BaseModel):
+    images: List[Dict[str, Any]] = Field(..., description="List of {id, image_data} to classify")
+    max_resolution: int = Field(512, description="Max resolution for inference")
 
 class SemanticSearchRequest(BaseModel):
     query: str = Field(..., description="Text query")
@@ -521,12 +583,22 @@ async def unload_model(service: str = "vlm"):
 @app.post("/api/v1/vlm/classify", dependencies=[Depends(verify_api_key)])
 async def vlm_classify(request: VLMClassifyRequest):
     """VLM image classification"""
+    temp_file = None
     try:
         service = await registry.get_vlm_service()
         
+        # Handle image_data (base64) or image_path
+        image_path = request.image_path
+        if request.image_data:
+            temp_file = decode_image_data(request.image_data)
+            image_path = temp_file
+        
+        if not image_path:
+            raise HTTPException(status_code=400, detail="Must provide image_path or image_data")
+        
         result = await service.process({
             'action': 'classify_image',
-            'image_path': request.image_path,
+            'image_path': image_path,
             'max_resolution': request.max_resolution
         })
         
@@ -535,16 +607,39 @@ async def vlm_classify(request: VLMClassifyRequest):
     except Exception as e:
         logger.error(f"VLM classify error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        # Cleanup temp file
+        if temp_file and os.path.exists(temp_file):
+            try:
+                os.unlink(temp_file)
+            except:
+                pass
+
+# Alias for client compatibility
+@app.post("/api/v1/classify", dependencies=[Depends(verify_api_key)])
+async def vlm_classify_alias(request: VLMClassifyRequest):
+    """Alias for /api/v1/vlm/classify (client compatibility)"""
+    return await vlm_classify(request)
 
 @app.post("/api/v1/vlm/caption", dependencies=[Depends(verify_api_key)])
 async def vlm_caption(request: VLMCaptionRequest):
     """VLM image captioning"""
+    temp_file = None
     try:
         service = await registry.get_vlm_service()
         
+        # Handle image_data (base64) or image_path
+        image_path = request.image_path
+        if request.image_data:
+            temp_file = decode_image_data(request.image_data)
+            image_path = temp_file
+        
+        if not image_path:
+            raise HTTPException(status_code=400, detail="Must provide image_path or image_data")
+        
         result = await service.process({
             'action': 'caption_image',
-            'image_path': request.image_path,
+            'image_path': image_path,
             'max_resolution': request.max_resolution,
             'prompt': request.prompt
         })
@@ -554,16 +649,184 @@ async def vlm_caption(request: VLMCaptionRequest):
     except Exception as e:
         logger.error(f"VLM caption error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if temp_file and os.path.exists(temp_file):
+            try:
+                os.unlink(temp_file)
+            except:
+                pass
+
+# Alias for client compatibility
+@app.post("/api/v1/caption", dependencies=[Depends(verify_api_key)])
+async def vlm_caption_alias(request: VLMCaptionRequest):
+    """Alias for /api/v1/vlm/caption (client compatibility)"""
+    return await vlm_caption(request)
+
+@app.post("/api/v1/vlm/vqa", dependencies=[Depends(verify_api_key)])
+async def vlm_vqa(request: VLMVQARequest):
+    """VLM Visual Question Answering"""
+    temp_file = None
+    try:
+        service = await registry.get_vlm_service()
+        
+        # Handle image_data (base64) or image_path
+        image_path = request.image_path
+        if request.image_data:
+            temp_file = decode_image_data(request.image_data)
+            image_path = temp_file
+        
+        if not image_path:
+            raise HTTPException(status_code=400, detail="Must provide image_path or image_data")
+        
+        # VQA uses caption with a question as prompt
+        result = await service.process({
+            'action': 'caption_image',
+            'image_path': image_path,
+            'max_resolution': request.max_resolution,
+            'prompt': request.question
+        })
+        
+        # Reformat response for VQA
+        return {
+            'answer': result.get('caption', result.get('response', '')),
+            'question': request.question,
+            'success': True
+        }
+        
+    except Exception as e:
+        logger.error(f"VLM VQA error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if temp_file and os.path.exists(temp_file):
+            try:
+                os.unlink(temp_file)
+            except:
+                pass
+
+# Alias for client compatibility
+@app.post("/api/v1/vqa", dependencies=[Depends(verify_api_key)])
+async def vlm_vqa_alias(request: VLMVQARequest):
+    """Alias for /api/v1/vlm/vqa (client compatibility)"""
+    return await vlm_vqa(request)
+
+@app.post("/api/v1/analyze_question", dependencies=[Depends(verify_api_key)])
+async def vlm_analyze_question(request: VLMAnalyzeQuestionRequest):
+    """Analyze a question to understand intent and required search strategy"""
+    try:
+        service = await registry.get_vlm_service()
+        
+        # Use VLM to analyze the question
+        analysis_prompt = f"""Analyze this question about an image dataset:
+Question: {request.question}
+
+Provide a JSON response with:
+- intent: what the user wants to know (count, find, describe, compare)
+- query_type: type of search needed (semantic, pose, text, attribute)
+- keywords: key terms for search
+- confidence: how clear the question is (0-1)
+"""
+        
+        result = await service.process({
+            'action': 'analyze_question',
+            'question': request.question,
+            'dataset_context': request.dataset_context
+        })
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Question analysis error: {e}")
+        # Return a basic analysis on error
+        return {
+            'intent': 'find',
+            'query_type': 'semantic',
+            'keywords': request.question.split(),
+            'confidence': 0.5,
+            'error': str(e)
+        }
+
+@app.post("/api/v1/classify_batch", dependencies=[Depends(verify_api_key)])
+async def vlm_classify_batch(request: VLMClassifyBatchRequest):
+    """Batch classify multiple images"""
+    temp_files = []
+    try:
+        service = await registry.get_vlm_service()
+        
+        results = []
+        for item in request.images:
+            temp_file = None
+            try:
+                image_data = item.get('image_data', '')
+                image_id = item.get('id', len(results))
+                
+                if image_data:
+                    temp_file = decode_image_data(image_data)
+                    temp_files.append(temp_file)
+                    
+                    result = await service.process({
+                        'action': 'classify_image',
+                        'image_path': temp_file,
+                        'max_resolution': request.max_resolution
+                    })
+                    
+                    results.append({
+                        'id': image_id,
+                        'classification': result,
+                        'success': True
+                    })
+                else:
+                    results.append({
+                        'id': image_id,
+                        'success': False,
+                        'error': 'No image data provided'
+                    })
+                    
+            except Exception as e:
+                results.append({
+                    'id': item.get('id', len(results)),
+                    'success': False,
+                    'error': str(e)
+                })
+        
+        return {
+            'results': results,
+            'total': len(results),
+            'success_count': len([r for r in results if r.get('success')])
+        }
+        
+    except Exception as e:
+        logger.error(f"Batch classify error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        for temp_file in temp_files:
+            if temp_file and os.path.exists(temp_file):
+                try:
+                    os.unlink(temp_file)
+                except:
+                    pass
 
 @app.post("/api/v1/vlm/verify", dependencies=[Depends(verify_api_key)])
 async def vlm_verify(request: VLMVerifyRequest):
     """VLM candidate verification"""
+    temp_files = []
     try:
         service = await registry.get_vlm_service()
         
+        # Handle candidates_data (base64) or candidates (paths)
+        candidates = request.candidates or []
+        if request.candidates_data:
+            candidates = []
+            for item in request.candidates_data:
+                temp_file = decode_image_data(item.get('image_data', ''))
+                temp_files.append(temp_file)
+                candidates.append(temp_file)
+        
+        if not candidates:
+            raise HTTPException(status_code=400, detail="Must provide candidates or candidates_data")
+        
         result = await service.process({
             'action': 'verify_candidates',
-            'candidates': request.candidates,
+            'candidates': candidates,
             'query': request.query,
             'max_resolution': request.max_resolution
         })
@@ -573,19 +836,42 @@ async def vlm_verify(request: VLMVerifyRequest):
     except Exception as e:
         logger.error(f"VLM verify error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        for temp_file in temp_files:
+            if temp_file and os.path.exists(temp_file):
+                try:
+                    os.unlink(temp_file)
+                except:
+                    pass
+
+# Alias for client compatibility
+@app.post("/api/v1/verify", dependencies=[Depends(verify_api_key)])
+async def vlm_verify_alias(request: VLMVerifyRequest):
+    """Alias for /api/v1/vlm/verify (client compatibility)"""
+    return await vlm_verify(request)
 
 @app.post("/api/v1/vlm/synthesize", dependencies=[Depends(verify_api_key)])
 async def vlm_synthesize(request: VLMSynthesizeRequest):
     """VLM answer synthesis"""
+    temp_files = []
     try:
         service = await registry.get_vlm_service()
+        
+        # Handle representative_images_data (base64) or representative_images (paths)
+        rep_images = request.representative_images or []
+        if request.representative_images_data:
+            rep_images = []
+            for img_data in request.representative_images_data:
+                temp_file = decode_image_data(img_data)
+                temp_files.append(temp_file)
+                rep_images.append(temp_file)
         
         result = await service.process({
             'action': 'synthesize_answer',
             'question': request.question,
             'evidence': request.evidence,
             'persona': request.persona,
-            'representative_images': request.representative_images,
+            'representative_images': rep_images if rep_images else None,
             'confidence_metrics': request.confidence_metrics
         })
         
@@ -594,6 +880,19 @@ async def vlm_synthesize(request: VLMSynthesizeRequest):
     except Exception as e:
         logger.error(f"VLM synthesize error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        for temp_file in temp_files:
+            if temp_file and os.path.exists(temp_file):
+                try:
+                    os.unlink(temp_file)
+                except:
+                    pass
+
+# Alias for client compatibility
+@app.post("/api/v1/synthesize", dependencies=[Depends(verify_api_key)])
+async def vlm_synthesize_alias(request: VLMSynthesizeRequest):
+    """Alias for /api/v1/vlm/synthesize (client compatibility)"""
+    return await vlm_synthesize(request)
 
 # ============================================================================
 # SEMANTIC ENDPOINTS
