@@ -97,8 +97,12 @@ class ServiceRegistry:
             'qwen_caption': False
         }
         
-    async def get_vlm_service(self):
-        """Lazy load VLM service"""
+    async def get_vlm_service(self, model_path: str = None):
+        """Lazy load VLM service
+        
+        Args:
+            model_path: Optional model path override (e.g., 'Qwen/Qwen3-VL-30B-A3B-Instruct')
+        """
         if self.vlm_service is None:
             logger.info("[ServiceRegistry] Loading VLM service...")
             start = time.time()
@@ -113,8 +117,8 @@ class ServiceRegistry:
             from vlm_engine import VLMEngine
             self.vlm_service = VLMEngine()
             
-            # Initialize (loads model)
-            await self.vlm_service.initialize()
+            # Initialize (loads model) - pass model_path if specified
+            await self.vlm_service.initialize(model_path=model_path)
             
             elapsed = time.time() - start
             logger.info(f"[ServiceRegistry] VLM service loaded in {elapsed:.2f}s")
@@ -421,16 +425,25 @@ async def get_status():
 # ============================================================================
 
 @app.post("/api/v1/load", dependencies=[Depends(verify_api_key)])
-async def load_model(service: str = "vlm"):
+async def load_model(service: str = "vlm", model: str = None):
     """
     Explicitly load a model into VRAM.
     Services: vlm, semantic, pose, joycaption, qwen_caption
+    
+    For VLM, optional model param: '8b' or '30b' (default: 8b)
     """
     try:
         if service == "vlm":
-            logger.info("[API] Loading VLM service...")
-            await registry.get_vlm_service()
-            return {"success": True, "service": "vlm", "message": "VLM model loaded successfully"}
+            # Support model variant selection
+            model_variant = model or '8b'
+            model_path = None
+            if model_variant == '30b':
+                model_path = "Qwen/Qwen3-VL-30B-A3B-Instruct"
+            # else default to 8B in vlm_engine
+            
+            logger.info(f"[API] Loading VLM service (variant: {model_variant})...")
+            await registry.get_vlm_service(model_path=model_path)
+            return {"success": True, "service": "vlm", "model": model_variant, "message": f"VLM model ({model_variant}) loaded successfully"}
         elif service == "semantic":
             logger.info("[API] Loading Semantic service...")
             await registry.get_semantic_service()

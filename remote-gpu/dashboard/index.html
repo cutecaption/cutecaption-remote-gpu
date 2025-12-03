@@ -549,6 +549,115 @@
             color: var(--text-tertiary);
             margin-left: auto;
         }
+        
+        /* Settings toggles */
+        .settings-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 8px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            font-size: 9px;
+        }
+        
+        .setting-label {
+            color: var(--text-secondary);
+        }
+        
+        .setting-toggle {
+            position: relative;
+            width: 28px;
+            height: 14px;
+            background: var(--bg-secondary);
+            border-radius: 7px;
+            cursor: pointer;
+            transition: background 0.2s;
+            border: 1px solid var(--border-primary);
+        }
+        
+        .setting-toggle.active {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+        }
+        
+        .setting-toggle::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 8px;
+            height: 8px;
+            background: var(--text-secondary);
+            border-radius: 50%;
+            transition: transform 0.2s;
+        }
+        
+        .setting-toggle.active::after {
+            transform: translateX(14px);
+            background: white;
+        }
+        
+        /* Footer loading progress */
+        .footer-progress {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-primary);
+            padding: 8px 24px;
+            font-size: 9px;
+        }
+        
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        
+        .progress-title {
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            font-weight: 500;
+            font-size: 8px;
+        }
+        
+        .progress-status {
+            color: var(--text-secondary);
+        }
+        
+        .progress-bar-container {
+            width: 100%;
+            height: 3px;
+            background: var(--bg-tertiary);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 4px;
+        }
+        
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-primary), var(--info));
+            transition: width 0.3s ease;
+            border-radius: 2px;
+        }
+        
+        .progress-detail {
+            color: var(--text-tertiary);
+            font-family: 'SF Mono', 'Monaco', monospace;
+            font-size: 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .footer-progress.hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -673,14 +782,15 @@
                 <div class="service-list">
                     <div class="service-item" id="vlmItem">
                         <div class="service-info">
-                            <span class="service-name">VLM (Qwen3-VL-8B)</span>
+                            <span class="service-name" id="vlmModelName">VLM (Qwen3-VL-8B)</span>
                             <span class="service-meta">
-                                <span>~8GB VRAM</span>
+                                <span id="vlmVramEstimate">~16GB VRAM</span>
                                 <span>Question Analysis</span>
                             </span>
                         </div>
                         <div class="service-controls">
                             <span class="service-status standby" id="vlmStatus">Standby</span>
+                            <button class="btn-sm" id="vlmSwitchBtn" onclick="switchQwenModel()" title="Switch model variant">8B</button>
                             <button class="btn-sm primary" id="vlmLoadBtn" onclick="toggleService('vlm')">Load</button>
                         </div>
                     </div>
@@ -701,7 +811,7 @@
                         <div class="service-info">
                             <span class="service-name">Pose (MediaPipe)</span>
                             <span class="service-meta">
-                                <span>~1GB VRAM</span>
+                                <span>CPU-based</span>
                                 <span>Body Detection</span>
                             </span>
                         </div>
@@ -737,7 +847,7 @@
                         <div class="service-info">
                             <span class="service-name">Qwen Caption</span>
                             <span class="service-meta">
-                                <span>~8GB VRAM</span>
+                                <span>~16GB VRAM</span>
                                 <span>Qwen3-VL Caption Mode</span>
                             </span>
                         </div>
@@ -803,6 +913,44 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Settings Row -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Loading Settings</div>
+                <span class="queue-count">Restart required</span>
+            </div>
+            <div class="settings-grid">
+                <div class="setting-item">
+                    <span class="setting-label">Direct GPU Load</span>
+                    <div class="setting-toggle active" id="settingDirectGpu" onclick="toggleSetting('direct_gpu')" title="Skip RAM, load straight to VRAM"></div>
+                </div>
+                <div class="setting-item">
+                    <span class="setting-label">Parallel Downloads</span>
+                    <div class="setting-toggle active" id="settingParallelDl" onclick="toggleSetting('parallel_dl')" title="Multi-thread model file downloads"></div>
+                </div>
+                <div class="setting-item">
+                    <span class="setting-label">Low Memory Mode</span>
+                    <div class="setting-toggle" id="settingLowMem" onclick="toggleSetting('low_mem')" title="Chunked loading for limited RAM"></div>
+                </div>
+                <div class="setting-item">
+                    <span class="setting-label">Flash Attention</span>
+                    <div class="setting-toggle active" id="settingFlashAttn" onclick="toggleSetting('flash_attn')" title="Use Flash Attention 2 for faster inference"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Footer Progress -->
+    <div class="footer-progress hidden" id="footerProgress">
+        <div class="progress-header">
+            <span class="progress-title">Loading Model</span>
+            <span class="progress-status" id="progressStatus">Initializing...</span>
+        </div>
+        <div class="progress-bar-container">
+            <div class="progress-bar-fill" id="progressBar" style="width: 0%"></div>
+        </div>
+        <div class="progress-detail" id="progressDetail">Waiting...</div>
     </div>
 
     <!-- Footer -->
@@ -813,15 +961,25 @@
     <script>
         // Configuration
         const API_BASE = window.location.origin;
-        const WS_URL = `ws://${window.location.host}/ws`;
+        // Auto-detect WSS for HTTPS, WS for HTTP
+        const WS_PROTOCOL = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const WS_URL = `${WS_PROTOCOL}//${window.location.host}/ws`;
         
-        // Service memory estimates (GB) - Accurate for bf16/fp16
+        // Qwen model variants
+        const QWEN_MODELS = {
+            '8b': { name: 'Qwen3-VL-8B', vram: 16, id: 'Qwen/Qwen3-VL-8B-Instruct' },
+            '30b': { name: 'Qwen3-VL-30B-A3B', vram: 24, id: 'Qwen/Qwen3-VL-30B-A3B-Instruct' }
+        };
+        
+        // Service memory estimates (GB) - Based on HuggingFace specs
+        // Qwen3-VL-8B: 9B params BF16 = ~18GB (practical: 16GB)
+        // Qwen3-VL-30B-A3B: MoE 31B params, 3B active = ~24GB with offloading
         const SERVICE_VRAM = {
-            vlm: 16,           // Qwen3-VL-8B bf16
+            vlm: 16,           // Qwen3-VL-8B bf16 (default)
             semantic: 2,       // CLIP-SAE
-            pose: 1,           // MediaPipe
+            pose: 1,           // MediaPipe (CPU-based, minimal VRAM)
             joycaption: 12,    // llama-joycaption
-            qwen_caption: 16   // Qwen3-VL-8B bf16 (same as VLM)
+            qwen_caption: 16   // Qwen3-VL-8B bf16 (shares with VLM)
         };
         
         // State
@@ -833,14 +991,45 @@
         let requestCount = 0;
         let totalResponseTime = 0;
         let storedApiKey = localStorage.getItem('gpu_api_key') || '';
+        let currentQwenModel = localStorage.getItem('qwen_model') || '8b';
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             log('info', 'Dashboard initialized');
             updateConnectionInfo();
+            updateQwenModelUI();
             startStatusPolling();
             connectWebSocket();
         });
+        
+        // Qwen Model Switcher
+        function switchQwenModel() {
+            // Can only switch when VLM is not loaded
+            if (loadedServices.has('vlm')) {
+                alert('Please unload VLM first before switching models.');
+                return;
+            }
+            
+            // Toggle between 8b and 30b
+            currentQwenModel = currentQwenModel === '8b' ? '30b' : '8b';
+            localStorage.setItem('qwen_model', currentQwenModel);
+            
+            updateQwenModelUI();
+            log('info', `Switched to ${QWEN_MODELS[currentQwenModel].name}`);
+        }
+        
+        function updateQwenModelUI() {
+            const model = QWEN_MODELS[currentQwenModel];
+            
+            // Update VLM display
+            document.getElementById('vlmModelName').textContent = `VLM (${model.name})`;
+            document.getElementById('vlmVramEstimate').textContent = `~${model.vram}GB VRAM`;
+            document.getElementById('vlmSwitchBtn').textContent = currentQwenModel.toUpperCase();
+            
+            // Update VRAM estimates
+            SERVICE_VRAM.vlm = model.vram;
+            SERVICE_VRAM.qwen_caption = model.vram;
+        }
 
         // Update connection info
         function updateConnectionInfo() {
@@ -1061,9 +1250,16 @@
             statusEl.textContent = 'Loading...';
             
             log('info', `Loading ${getServiceDisplayName(service)}...`);
+            showLoadingProgress(service);
             
             try {
-                const response = await fetch(`${API_BASE}/api/v1/load?service=${service}`, {
+                // Build URL with optional model param for VLM
+                let loadUrl = `${API_BASE}/api/v1/load?service=${service}`;
+                if (service === 'vlm' || service === 'qwen_caption') {
+                    loadUrl += `&model=${currentQwenModel}`;
+                }
+                
+                const response = await fetch(loadUrl, {
                     method: 'POST',
                     headers: {
                         'X-API-Key': apiKey,
@@ -1075,6 +1271,8 @@
                 
                 if (response.ok && data.success) {
                     log('success', `${getServiceDisplayName(service)} loaded successfully`);
+                    updateLoadingProgress(100, 'Model loaded successfully');
+                    hideLoadingProgress();
                 } else {
                     throw new Error(data.detail || data.message || 'Load failed');
                 }
@@ -1087,14 +1285,17 @@
                 loadBtn.disabled = false;
                 statusEl.className = 'service-status standby';
                 statusEl.textContent = 'Standby';
+                hideLoadingProgress();
             }
         }
 
         async function unloadService(service, showLog = true) {
             const btnId = service === 'qwen_caption' ? 'qwenCaptionLoadBtn' : `${service}LoadBtn`;
             const statusId = service === 'qwen_caption' ? 'qwenCaptionStatus' : `${service}Status`;
+            const itemId = service === 'qwen_caption' ? 'qwenCaptionItem' : `${service}Item`;
             const loadBtn = document.getElementById(btnId);
             const statusEl = document.getElementById(statusId);
+            const itemEl = document.getElementById(itemId);
             
             let apiKey = storedApiKey;
             if (!apiKey) {
@@ -1106,6 +1307,7 @@
             
             loadBtn.textContent = 'Unloading...';
             loadBtn.disabled = true;
+            loadBtn.classList.add('loading');
             
             if (showLog) log('info', `Unloading ${getServiceDisplayName(service)}...`);
             
@@ -1123,15 +1325,26 @@
                 if (response.ok && data.success) {
                     if (showLog) log('success', `${getServiceDisplayName(service)} unloaded`);
                     loadedServices.delete(service);
+                    
+                    // Reset button state
+                    loadBtn.textContent = 'Load';
+                    loadBtn.className = 'btn-sm primary';
+                    statusEl.className = 'service-status standby';
+                    statusEl.textContent = 'Standby';
+                    itemEl.classList.remove('active');
                 } else {
                     throw new Error(data.detail || 'Unload failed');
                 }
                 
             } catch (error) {
                 log('error', `Failed to unload ${service}: ${error.message}`);
+                // Reset to loaded state on error
+                loadBtn.textContent = 'Unload';
+                loadBtn.className = 'btn-sm danger';
             }
             
             loadBtn.disabled = false;
+            loadBtn.classList.remove('loading');
         }
 
         // Suggest which services to unload to make room
@@ -1191,6 +1404,11 @@
                         if (data.type === 'request_complete') {
                             requestCount++;
                             totalResponseTime += data.duration_ms || 0;
+                        } else if (data.type === 'loading_progress') {
+                            updateLoadingProgress(data.percent || 0, data.detail || data.message);
+                        } else if (data.type === 'loading_complete') {
+                            updateLoadingProgress(100, 'Complete');
+                            hideLoadingProgress();
                         }
                     } catch (e) {}
                 };
@@ -1247,6 +1465,68 @@
             if (m > 0) return `${m}m ${s}s`;
             return `${s}s`;
         }
+        
+        // Settings management
+        const defaultSettings = {
+            direct_gpu: true,
+            parallel_dl: true,
+            low_mem: false,
+            flash_attn: true
+        };
+        
+        let loadingSettings = JSON.parse(localStorage.getItem('loading_settings')) || {...defaultSettings};
+        
+        function initSettings() {
+            // Apply saved settings to UI
+            Object.keys(loadingSettings).forEach(key => {
+                const el = document.getElementById(`setting${key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('')}`);
+                if (el) {
+                    if (loadingSettings[key]) {
+                        el.classList.add('active');
+                    } else {
+                        el.classList.remove('active');
+                    }
+                }
+            });
+        }
+        
+        function toggleSetting(key) {
+            loadingSettings[key] = !loadingSettings[key];
+            localStorage.setItem('loading_settings', JSON.stringify(loadingSettings));
+            
+            const elId = `setting${key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('')}`;
+            const el = document.getElementById(elId);
+            if (el) {
+                el.classList.toggle('active');
+            }
+            
+            log('info', `Setting ${key} = ${loadingSettings[key]}`);
+        }
+        
+        // Loading progress
+        function showLoadingProgress(service) {
+            const footer = document.getElementById('footerProgress');
+            footer.classList.remove('hidden');
+            document.getElementById('progressStatus').textContent = `Loading ${getServiceDisplayName(service)}...`;
+            document.getElementById('progressBar').style.width = '0%';
+            document.getElementById('progressDetail').textContent = 'Initializing...';
+        }
+        
+        function updateLoadingProgress(percent, detail) {
+            document.getElementById('progressBar').style.width = `${percent}%`;
+            document.getElementById('progressDetail').textContent = detail || `${percent}% complete`;
+            document.getElementById('progressStatus').textContent = percent >= 100 ? 'Complete' : `${percent}%`;
+        }
+        
+        function hideLoadingProgress() {
+            const footer = document.getElementById('footerProgress');
+            setTimeout(() => {
+                footer.classList.add('hidden');
+            }, 1500);
+        }
+        
+        // Initialize settings on load
+        setTimeout(initSettings, 100);
 
         window.addEventListener('beforeunload', () => {
             if (statusInterval) clearInterval(statusInterval);

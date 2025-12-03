@@ -56,10 +56,17 @@ from base_engine import BaseEngine
 # Import VLM libraries
 # REQUIRES: pip install git+https://github.com/huggingface/transformers
 # Qwen3VLForConditionalGeneration is in transformers 4.57.0+ (unreleased, git only)
+# Qwen3VLMoeForConditionalGeneration is for MoE models like 30B-A3B
 try:
     import torch
     from PIL import Image
     from transformers import AutoProcessor, Qwen3VLForConditionalGeneration
+    # Import MoE variant for 30B-A3B models
+    try:
+        from transformers import Qwen3VLMoeForConditionalGeneration
+        HAS_MOE_MODEL = True
+    except ImportError:
+        HAS_MOE_MODEL = False
     from qwen_vl_utils import process_vision_info
     from huggingface_hub import snapshot_download
 except ImportError as e:
@@ -183,17 +190,31 @@ class VLMEngine(BaseEngine):
             # This prevents system RAM spikes by loading directly to GPU
             self.logger.info("Loading model from local path with device_map='auto'...")
             
+            # Detect if this is a MoE model (30B-A3B) or dense model (8B)
+            is_moe_model = 'A3B' in self.model_path or 'moe' in self.model_path.lower()
+            
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=FutureWarning)
                 warnings.filterwarnings("ignore", category=UserWarning)
                 
-                self.model = Qwen3VLForConditionalGeneration.from_pretrained(
-                    local_model_path,  # Use the local path we just verified
-                    torch_dtype=torch_dtype,
-                    device_map="auto",
-                    low_cpu_mem_usage=True,
-                    trust_remote_code=True,
-                )
+                if is_moe_model and HAS_MOE_MODEL:
+                    self.logger.info("Using Qwen3VLMoeForConditionalGeneration for MoE model")
+                    self.model = Qwen3VLMoeForConditionalGeneration.from_pretrained(
+                        local_model_path,
+                        torch_dtype=torch_dtype,
+                        device_map="auto",
+                        low_cpu_mem_usage=True,
+                        trust_remote_code=True,
+                    )
+                else:
+                    self.logger.info("Using Qwen3VLForConditionalGeneration for dense model")
+                    self.model = Qwen3VLForConditionalGeneration.from_pretrained(
+                        local_model_path,  # Use the local path we just verified
+                        torch_dtype=torch_dtype,
+                        device_map="auto",
+                        low_cpu_mem_usage=True,
+                        trust_remote_code=True,
+                    )
             
             # No need for manual .to("cuda") as device_map handles it
             self.logger.info("Model loaded successfully")
